@@ -15,6 +15,7 @@ import Setting from "./views/setting/index.tsx";
 import TentangApp from "./views/tentang-app/index.tsx";
 import UserManagement from "./views/user-management/index.tsx";
 import BarangDanStok from "./views/barang-dan-stok/index.tsx";
+import NotFound from "./views/not-found/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -45,6 +46,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/user-management" element={<UserManagement />} />
 
         <Route path="/" element={<App />} />
+
+        <Route path="/*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
