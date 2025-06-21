@@ -3,7 +3,10 @@ export type UserRole =
   | "purchasing"
   | "logistik"
   | "user"
-  | "admin";
+  | "admin"
+  | "unassigned";
+
+export type AuthProvider = "credential" | "google";
 
 export type Lokasi = {
   nama: string;
@@ -16,3 +19,11 @@ export const LokasiList: Lokasi[] = [
   { nama: "BPN", kode: "BPN" },
   { nama: "BIB", kode: "BIB" },
 ];
+
+export type LogCategory =
+  | "User Activity"
+  | "Material Request"
+  | "Purchase Request"
+  | "Purchase Order"
+  | "Receive Item"
+  | "Delivery";

@@ -3,38 +3,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm({
+export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Login ke akun anda</h1>
+        <h1 className="text-2xl font-bold">Daftar akun baru anda</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Masukkan email dan password anda untuk login.
+          Masukkan seluruh informasi yang dibutuhkan untuk mendaftarkan akun
+          baru.
         </p>
       </div>
       <div className="grid gap-6">
+        {/* Email */}
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" placeholder="m@example.com" required />
         </div>
+        {/* Full Name */}
         <div className="grid gap-3">
-          <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
-            <a
-              href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-            >
-              Lupa password?
-            </a>
-          </div>
+          <Label htmlFor="name">Nama</Label>
+          <Input id="name" type="name" required />
+        </div>
+        {/* Pass */}
+        <div className="grid gap-3">
+          <Label htmlFor="password">Password</Label>
           <Input id="password" type="password" required />
         </div>
+        {/* Konfirmasi Pass */}
+        <div className="grid gap-3">
+          <Label htmlFor="password-confirm">Konfirmasi Password</Label>
+          <Input id="password-confirm" type="password" required />
+        </div>
+        {/* Login Button */}
         <Button type="submit" className="w-full">
-          Login
+          Daftar
         </Button>
+        {/* Alternatif */}
         <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
             Atau
@@ -51,9 +58,9 @@ export function LoginForm({
         </Button>
       </div>
       <div className="text-center text-sm">
-        Belum memiliki akun?{" "}
-        <a href="/register" className="underline underline-offset-4">
-          Register
+        Sudah memiliki akun?{" "}
+        <a href="/login" className="underline underline-offset-4">
+          Login
         </a>
       </div>
     </form>

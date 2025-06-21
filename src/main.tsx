@@ -16,12 +16,19 @@ import TentangApp from "./views/tentang-app/index.tsx";
 import UserManagement from "./views/user-management/index.tsx";
 import BarangDanStok from "./views/barang-dan-stok/index.tsx";
 import NotFound from "./views/not-found/index.tsx";
+import Register from "./views/register/index.tsx";
+import { Toaster } from "./components/ui/sonner.tsx";
+import NotVerified from "./views/not-verified/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <Toaster richColors closeButton />
+
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        <Route path="/register" element={<Register />} />
 
         <Route path="/dashboard" element={<Dashboard />} />
 
@@ -44,6 +51,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/tentang-app" element={<TentangApp />} />
 
         <Route path="/user-management" element={<UserManagement />} />
+
+        <Route path="/not-verified" element={<NotVerified />} />
 
         <Route path="/" element={<App />} />
 

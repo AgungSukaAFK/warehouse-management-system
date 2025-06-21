@@ -1,90 +1,92 @@
+import type { FieldValue, Timestamp } from "firebase/firestore";
+import type { AuthProvider, LogCategory } from "./enum";
+
 export interface User {
-  id: number;
   email: string;
   nama: string;
   role: string;
   lokasi: string;
-  created_at: Date;
-  updated_at: Date;
+  email_verified: boolean;
+  auth_provider: AuthProvider;
+  created_at?: Timestamp | FieldValue;
+  updated_at?: Timestamp | FieldValue;
 }
 
 export interface MR {
-  id: string;
   kode: string;
-  tanggal_estimasi: Date;
+  tanggal_estimasi: Timestamp;
   lokasi: string;
   pic: string;
   status: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 
   barang: Item[];
 }
 
 export interface PR {
-  id: string;
   kode: string;
   kode_mr: string;
   status: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 
   mrs: MR[];
 }
 
 export interface PO {
-  id: string;
   kode: string;
   kode_pr: string;
   kode_mr: string;
   status: string;
-  created_at: string;
-  updated_at: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface RI {
-  id: string;
   kode_po: string;
-  tanggal: Date;
+  tanggal: Timestamp;
   gudang_penerima: string;
-  created_at: string;
-  updated_at: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface Delivery {
-  id: string;
   kode_it: string;
   kode_mr: string;
   ekspedisi: string;
   resi_pengiriman: string;
   status: string;
   jumlah_koli: number;
-  created_at: string;
-  updated_at: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface Item {
-  id: string;
   part_no: string;
   part_name: string;
   satuan: string;
 }
 
 export interface Stock {
-  id: string;
-  part_no: string; // Dari Item
+  part_no: string;
   gudang: string;
   max: number;
   min: number;
   stok: number;
-  created_at: Date;
-  updated_at: Date;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface Transaction {
-  id: string;
   kode_mr: string;
   status: string;
-  created_at: string;
-  updated_at: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface SystemLog {
+  category: LogCategory;
+  title: string;
+  description: string;
 }

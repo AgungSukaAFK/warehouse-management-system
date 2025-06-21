@@ -5,8 +5,16 @@ import SectionContainer, {
 } from "@/components/content-container";
 import WithSidebar from "@/components/layout/WithSidebar";
 import { MyPagination } from "@/components/my-pagination";
+import { getCurrentUser } from "@/services/auth";
+import { useEffect } from "react";
 
 export default function Dashboard() {
+  useEffect(() => {
+    async function getUser() {
+      await getCurrentUser();
+    }
+    getUser();
+  }, []);
   return (
     <WithSidebar>
       {/* Overview */}
