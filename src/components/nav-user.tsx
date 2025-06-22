@@ -35,6 +35,7 @@ export function NavUser({
 
   function handleLogout() {
     logout();
+    window.location.href = "/login";
   }
 
   return (

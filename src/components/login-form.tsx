@@ -54,7 +54,7 @@ export function LoginForm({ loading, className, ...props }: LoginFormProps) {
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
             <a
-              href="#"
+              href="/forget-password"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Lupa password?

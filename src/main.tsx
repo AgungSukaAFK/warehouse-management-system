@@ -20,6 +20,7 @@ import Register from "./views/register/index.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import VerifyEmailPage from "./views/verify-email/index.tsx";
 import PendingApprovalPage from "./views/unassigned/index.tsx";
+import ForgetPassword from "./views/forget-password/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -27,9 +28,23 @@ createRoot(document.getElementById("root")!).render(
 
     <BrowserRouter>
       <Routes>
+        {/* AUTH */}
+
         <Route path="/login" element={<Login />} />
 
         <Route path="/register" element={<Register />} />
+
+        <Route path="/not-verified" element={<VerifyEmailPage />} />
+
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+        <Route path="/forget-password" element={<ForgetPassword />} />
+
+        <Route path="/unassigned" element={<PendingApprovalPage />} />
+
+        {/* END AUTH */}
+
+        {/* MENU */}
 
         <Route path="/dashboard" element={<Dashboard />} />
 
@@ -53,14 +68,12 @@ createRoot(document.getElementById("root")!).render(
 
         <Route path="/user-management" element={<UserManagement />} />
 
-        <Route path="/not-verified" element={<VerifyEmailPage />} />
+        {/* END MENU */}
 
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-
-        <Route path="/unassigned" element={<PendingApprovalPage />} />
-
+        {/* HOMEPAGE */}
         <Route path="/" element={<App />} />
 
+        {/* NOT FOUND PAGE HANDLER */}
         <Route path="/*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

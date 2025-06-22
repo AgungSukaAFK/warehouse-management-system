@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
@@ -15,6 +16,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { toast } from "sonner";
@@ -213,6 +215,16 @@ export async function getCurrentUser(): Promise<UserComplete | null> {
 
         const completedUser = userDoc.docs[0].data() as UserDb;
 
+        if (user.emailVerified && completedUser.email_verified === false) {
+          // Update email_verified field in Firestore
+          const userDocRef = userDoc.docs[0].ref;
+          await updateDoc(userDocRef, {
+            email_verified: true,
+            updated_at: serverTimestamp(),
+          });
+          completedUser.email_verified = true;
+        }
+
         if (
           completedUser.role === "unassigned" ||
           completedUser.lokasi === "unassigned"
@@ -261,4 +273,24 @@ export async function checkEmailVerificationStatus() {
     return user.emailVerified;
   }
   return false;
+}
+
+export async function resetPasswordByEmail(email: string) {
+  if (!email) {
+    throw new Error("Email is required");
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return true; // Berhasil mengirim email reset password
+  } catch (error: any) {
+    let errorMessage = "Gagal mengirim email reset password.";
+    if (error.code === "auth/user-not-found") {
+      errorMessage = "Email tidak terdaftar.";
+    } else if (error.code === "auth/invalid-email") {
+      errorMessage = "Format email tidak valid.";
+    }
+    console.error("Error sending reset password email:", error);
+    throw new Error(errorMessage || error.message);
+  }
 }
