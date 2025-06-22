@@ -1,6 +1,46 @@
 import { LoginForm } from "@/components/login-form";
+import { signIn } from "@/services/auth";
+import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Login() {
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    try {
+      const result = await signIn({ email, password });
+      if (result) {
+        navigate("/dashboard");
+      } else {
+        throw new Error("Gagal login, silakan coba lagi.");
+      }
+    } catch (err: any) {
+      if (err instanceof Error) {
+        setError(err.message || "Terjadi kesalahan yang tidak diketahui.");
+      } else {
+        setError("Terjadi kesalahan yang tidak diketahui.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error || "Terjadi kesalahan yang tidak diketahui.");
+      setError("");
+    }
+    setLoading(false);
+  }, [error]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
@@ -9,7 +49,7 @@ export default function Login() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <LoginForm />
+            <LoginForm loading={loading} onSubmit={handleLogin} />
           </div>
         </div>
       </div>

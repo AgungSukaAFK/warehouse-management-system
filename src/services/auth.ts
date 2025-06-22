@@ -1,24 +1,27 @@
-import { auth, db } from "@/lib/firebase";
-import type { User } from "@/types";
+import { auth, db, googleAuthProvider } from "@/lib/firebase";
+import { generateAvatarUrl } from "@/lib/utils";
+import type { UserComplete, UserDb } from "@/types";
 import {
   createUserWithEmailAndPassword,
-  signInWithCredential,
+  onAuthStateChanged,
+  reload,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signInWithPopup,
 } from "firebase/auth";
 import {
   addDoc,
   collection,
-  FieldValue,
   getDocs,
   query,
   serverTimestamp,
   where,
 } from "firebase/firestore";
+import { toast } from "sonner";
 
 interface Register {
   email: string;
   nama: string;
-  role: string;
-  lokasi: string;
   password: string;
 }
 
@@ -27,15 +30,106 @@ interface SignIn {
   password: string;
 }
 
-interface GetUser {
-  id: string;
-}
-
 const userCollection = "users";
 
+export async function signIn(dto: SignIn): Promise<boolean> {
+  const { email, password } = dto;
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  try {
+    // Use signInWithEmailAndPassword for email/password authentication
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // Fetch user data from Firestore
+    const userRef = collection(db, userCollection);
+    const q = query(userRef, where("email", "==", user.email));
+    const userDoc = await getDocs(q);
+    if (userDoc.empty) {
+      throw new Error("User not found");
+    }
+    return true;
+  } catch (error: any) {
+    let errorMessage = "Gagal melakukan sign in.";
+    if (
+      error.code === "auth/user-not-found" ||
+      error.code === "auth/wrong-password"
+    ) {
+      errorMessage = "Email atau password salah.";
+    } else if (error.code === "auth/invalid-email") {
+      errorMessage = "Format email tidak valid.";
+    } else if (error.code === "auth/too-many-requests") {
+      errorMessage = "Terlalu banyak percobaan login. Coba lagi nanti.";
+    }
+    // Jika bukan error Firebase Auth, gunakan pesan aslinya
+    throw new Error(errorMessage || error.message);
+  }
+
+  return false;
+}
+
+export async function signInWithGoogle(): Promise<boolean> {
+  try {
+    const result = await signInWithPopup(auth, googleAuthProvider);
+    const user = result.user;
+
+    if (!user.email) {
+      throw new Error("Email pengguna tidak ditemukan dari Google Sign-in.");
+    }
+
+    const userRef = collection(db, userCollection);
+    const q = query(userRef, where("email", "==", user.email));
+    const userDocSnap = await getDocs(q);
+
+    // Jika user sudah terdaftar di Firestore
+    if (!userDocSnap.empty) {
+      return true; // User sudah ada, tidak perlu menambahkan lagi
+    }
+
+    // Jika user belum terdaftar di Firestore (ini adalah Sign Up pertama kali dengan Google)
+    const userData: Omit<UserDb, "id"> = {
+      email: user.email,
+      nama: user.displayName || "Anonymous",
+      role: "unassigned",
+      lokasi: "unassigned",
+      email_verified: user.emailVerified || false,
+      auth_provider: "google",
+      image_url:
+        user.photoURL || generateAvatarUrl(user.displayName || user.email),
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    };
+
+    const newDocRef = await addDoc(userRef, userData);
+    console.log("New user added to Firestore:", newDocRef.id);
+
+    return true;
+  } catch (error: any) {
+    // Tangani error spesifik dari Firebase Auth
+    let errorMessage = "Gagal melakukan sign in dengan Google.";
+    if (error.code === "auth/popup-closed-by-user") {
+      errorMessage = "Proses sign in dibatalkan oleh pengguna.";
+    } else if (error.code === "auth/cancelled-popup-request") {
+      errorMessage =
+        "Permintaan popup dibatalkan (mungkin sudah ada popup lain terbuka).";
+    } else if (error.code === "auth/operation-not-allowed") {
+      errorMessage =
+        "Login dengan Google belum diaktifkan di Firebase Console Anda.";
+    }
+    console.error("Error signing in with Google:", error);
+    throw new Error(errorMessage || error.message);
+  }
+}
+
 export async function registerUser(dto: Register) {
-  const { email, nama, role, lokasi, password } = dto;
-  if (!email || !nama || !role || !lokasi || !password) {
+  const { email, nama, password } = dto;
+  if (!email || !nama || !password) {
     throw new Error("All fields are required");
   }
 
@@ -47,83 +141,124 @@ export async function registerUser(dto: Register) {
     throw new Error("Email sudah terdaftar");
   }
 
-  await createUserWithEmailAndPassword(auth, email, password).then(
-    async (userCredential) => {
-      const user = userCredential.user;
-      console.log("User created:", user);
-
-      // Simpan data user ke Firestore
-      const userData: User = {
-        email,
-        nama,
-        role,
-        lokasi,
-        email_verified: user.emailVerified,
-        auth_provider: "credential",
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      };
-
-      const userRef = collection(db, userCollection);
-      await addDoc(userRef, userData);
-    }
-  );
-
-  // Create User di DB
-}
-
-export async function getCurrentUser() {
-  const user = auth.currentUser;
-  if (!user) {
-    window.location.href = "/login";
-  }
-  if (user?.emailVerified === false) {
-    window.location.href = "/verify-email";
-  }
-
-  // Fetch user data from Firestore
-  const userRef = collection(db, userCollection);
-  const q = query(userRef, where("email", "==", user?.email));
-  const userDoc = await getDocs(q);
-  if (userDoc.empty) {
-    window.location.href = "/login";
-  }
-  const completedUser = userDoc.docs[0].data() as User;
-
-  return {
-    ...completedUser,
-    id: userDoc.docs[0].id,
-  };
-}
-
-export async function signIn(dto: SignIn) {
-  const { email, password } = dto;
-  if (!email || !password) {
-    throw new Error("Email and password are required");
-  }
-
   try {
-    // Use signInWithEmailAndPassword for email/password authentication
-    const userCredential = await import("firebase/auth").then(
-      ({ signInWithEmailAndPassword }) =>
-        signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
     );
     const user = userCredential.user;
+    console.log("User created:", user);
 
-    // Fetch user data from Firestore
-    const userRef = collection(db, userCollection);
-    const q = query(userRef, where("email", "==", user.email));
-    const userDoc = await getDocs(q);
-    if (userDoc.empty) {
-      throw new Error("User not found");
-    }
-    const completedUser = userDoc.docs[0].data() as User;
-
-    return {
-      ...completedUser,
-      id: userDoc.docs[0].id,
+    // Simpan data user ke Firestore
+    const userData: Omit<UserDb, "id"> = {
+      email,
+      nama,
+      role: "unassigned",
+      lokasi: "unassigned",
+      email_verified: user.emailVerified,
+      auth_provider: "credential",
+      image_url: user.photoURL || generateAvatarUrl(nama),
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
     };
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : "Sign in failed");
+
+    const userRef = collection(db, userCollection);
+    await addDoc(userRef, userData);
+
+    // Kirim email verifikasi setelah pendaftaran
+    await sendEmailVerification(user);
+    toast.info(
+      `Email verifikasi telah dikirim ke ${email}. Silakan periksa inbox Anda.`
+    );
+  } catch (error: any) {
+    // Tangkap error dari Firebase Auth
+    // Firebase Auth errors memiliki kode dan pesan yang bisa Anda gunakan
+    let errorMessage = "Terjadi kesalahan saat pendaftaran.";
+    if (error.code === "auth/email-already-in-use") {
+      errorMessage = "Email ini sudah digunakan oleh akun lain.";
+    } else if (error.code === "auth/invalid-email") {
+      errorMessage = "Format email tidak valid.";
+    } else if (error.code === "auth/weak-password") {
+      errorMessage = "Password terlalu lemah (minimal 6 karakter).";
+    }
+    console.error("Error registering user:", error);
+    throw new Error(errorMessage); // Lempar error yang lebih user-friendly
   }
+}
+
+export async function getCurrentUser(): Promise<UserComplete | null> {
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        resolve(null);
+        return;
+      }
+
+      if (!user.emailVerified) {
+        window.location.href = "/verify-email";
+        resolve(null);
+        return;
+      }
+
+      try {
+        const userRef = collection(db, userCollection);
+        const q = query(userRef, where("email", "==", user.email));
+        const userDoc = await getDocs(q);
+
+        if (userDoc.empty) {
+          resolve(null);
+          return;
+        }
+
+        const completedUser = userDoc.docs[0].data() as UserDb;
+
+        if (
+          completedUser.role === "unassigned" ||
+          completedUser.lokasi === "unassigned"
+        ) {
+          if (window.location.pathname !== "/unassigned") {
+            console.log(window.location.pathname);
+            window.location.href = "/unassigned";
+          }
+        }
+
+        resolve({
+          ...completedUser,
+          ...user,
+        });
+      } catch (error) {
+        console.error("Error fetching user data from Firestore:", error);
+        resolve(null);
+      }
+    });
+  });
+}
+
+export async function logout() {
+  try {
+    await auth.signOut();
+    return true;
+  } catch (error) {
+    console.error("Error during logout:", error);
+    throw new Error("Logout failed");
+  }
+}
+
+export async function resendVerificationEmail() {
+  const user = auth.currentUser;
+  if (user) {
+    await sendEmailVerification(user);
+    return true; // Berhasil mengirim ulang
+  }
+  throw new Error("Tidak ada pengguna yang login.");
+}
+
+export async function checkEmailVerificationStatus() {
+  const user = auth.currentUser;
+  if (user) {
+    await reload(user); // Memaksa refresh status user dari Firebase
+    return user.emailVerified;
+  }
+  return false;
 }

@@ -1,6 +1,66 @@
 import { RegisterForm } from "@/components/register-form";
+import { registerUser } from "@/services/auth";
+import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Register() {
+  const [error, setError] = useState<string>(""); // State untuk pesan error
+  const [loading, setLoading] = useState<boolean>(false); // State untuk loading
+  const navigate = useNavigate(); // Inisialisasi router
+
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(""); // Reset error
+    setLoading(true); // Mulai loading
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const nama = formData.get("nama") as string;
+    const password = formData.get("password") as string;
+    const passwordConfirm = formData.get("confirm-password") as string;
+
+    // --- Validasi Sisi Klien ---
+    if (!email || !nama || !password || !passwordConfirm) {
+      setError("Semua kolom harus diisi.");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setError("Konfirmasi password tidak cocok.");
+      setLoading(false);
+      return;
+    }
+
+    // Optional: Tambahkan validasi kekuatan password di sini
+    // Contoh: Minimal 6 karakter
+    if (password.length < 6) {
+      setError("Password minimal 6 karakter.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await registerUser({ email, nama, password });
+      navigate("/verify-email");
+    } catch (err: any) {
+      console.error("Failed to register:", err);
+      // Tampilkan pesan error dari fungsi registerUser
+      setError(err.message || "Terjadi kesalahan yang tidak diketahui.");
+    } finally {
+      setLoading(false); // Hentikan loading
+    }
+  };
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error || "Terjadi kesalahan yang tidak diketahui.");
+      setError("");
+    }
+  }, [error]);
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="bg-muted relative hidden lg:block">
@@ -21,7 +81,7 @@ export default function Register() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <RegisterForm />
+            <RegisterForm onSubmit={handleRegister} loading={loading} />{" "}
           </div>
         </div>
       </div>

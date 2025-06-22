@@ -18,11 +18,12 @@ import BarangDanStok from "./views/barang-dan-stok/index.tsx";
 import NotFound from "./views/not-found/index.tsx";
 import Register from "./views/register/index.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
-import NotVerified from "./views/not-verified/index.tsx";
+import VerifyEmailPage from "./views/verify-email/index.tsx";
+import PendingApprovalPage from "./views/unassigned/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Toaster richColors closeButton />
+    <Toaster richColors closeButton theme="system" />
 
     <BrowserRouter>
       <Routes>
@@ -52,7 +53,11 @@ createRoot(document.getElementById("root")!).render(
 
         <Route path="/user-management" element={<UserManagement />} />
 
-        <Route path="/not-verified" element={<NotVerified />} />
+        <Route path="/not-verified" element={<VerifyEmailPage />} />
+
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+        <Route path="/unassigned" element={<PendingApprovalPage />} />
 
         <Route path="/" element={<App />} />
 

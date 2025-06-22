@@ -1,13 +1,29 @@
 import type { FieldValue, Timestamp } from "firebase/firestore";
 import type { AuthProvider, LogCategory } from "./enum";
+import type { User } from "firebase/auth";
 
-export interface User {
+export interface UserDb {
+  id: string;
   email: string;
   nama: string;
   role: string;
   lokasi: string;
   email_verified: boolean;
   auth_provider: AuthProvider;
+  image_url: string;
+  created_at?: Timestamp | FieldValue;
+  updated_at?: Timestamp | FieldValue;
+}
+
+export interface UserComplete extends User {
+  id: string;
+  email: string | null;
+  nama: string;
+  role: string;
+  lokasi: string;
+  email_verified: boolean;
+  auth_provider: AuthProvider;
+  image_url: string;
   created_at?: Timestamp | FieldValue;
   updated_at?: Timestamp | FieldValue;
 }
@@ -90,3 +106,10 @@ export interface SystemLog {
   title: string;
   description: string;
 }
+
+export type Pagination<T> = {
+  data: T;
+  total: number;
+  page: number;
+  size: number;
+};

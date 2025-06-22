@@ -30,3 +30,8 @@ export function formatTanggal(timestamp: number): string {
 
   return `${hariNama}, ${tanggal} ${bulanNama} ${tahun}`;
 }
+
+export function generateAvatarUrl(name: string): string {
+  const encodedName = encodeURIComponent(name.trim());
+  return `https://ui-avatars.com/api/?name=${encodedName}&background=random&color=fff&bold=true`;
+}

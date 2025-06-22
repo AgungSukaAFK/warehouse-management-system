@@ -30,11 +30,6 @@ import {
 import { useLocation } from "react-router-dom";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "Lourdes Autoparts",
@@ -115,7 +110,12 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: { avatar: string; email: string; nama: string; role?: string };
+}) {
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -132,12 +132,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain label="Admin" items={markActive(data.navAdmin)} />
+        {user.role === "admin" && (
+          <NavMain label="Admin" items={markActive(data.navAdmin)} />
+        )}
         <NavMain items={markActive(data.navMain)} />
         <NavMain label="About" items={markActive(data.navSecondary)} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            avatar: user.avatar,
+            email: user.email,
+            name: user.nama,
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
