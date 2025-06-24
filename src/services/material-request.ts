@@ -1,7 +1,113 @@
 /**
  * TODO
- * 1. Create MR : Warehouse
- * 2. Update MR : Warehouse
- * 3. Get all MR : All
- * 4. Get MR by id : All
+ * 1. Create MR : Warehouse - done
+ * 2. Update MR : Warehouse - done
+ * 3. Get all MR : All - done
+ * 4. Get MR by id : All - done
  */
+
+import { db } from "@/lib/firebase";
+import type { MR, UserComplete, UserDb } from "@/types";
+import { LokasiList } from "@/types/enum";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+
+// --- MR Service Functions ---
+
+const mrCollectionRef = collection(db, "mrs");
+
+export async function generateKodeMR(
+  user: UserDb | UserComplete
+): Promise<string> {
+  // Contoh GMI/JKT/25/4/00005
+  const locationShort =
+    LokasiList.find((loc) => loc.nama === user.lokasi)?.kode || "UNK";
+  const tahunShort = new Date().getFullYear().toString().slice(-2);
+  const bulanShort = (new Date().getMonth() + 1).toString();
+  try {
+    const templateKode = `GMI/${locationShort}/${tahunShort}/${bulanShort}/`;
+    return templateKode;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function createMR(
+  newMRData: Omit<MR, "id" | "created_at" | "updated_at">
+): Promise<boolean> {
+  try {
+    // check mr with same kode
+    const q = query(mrCollectionRef, where("kode", "==", newMRData.kode));
+    const existingSnap = await getDocs(q);
+    if (!existingSnap.empty) {
+      throw new Error(
+        `MR dengan kode ${newMRData.kode} sudah ada, ganti dengan yang lain.`
+      );
+    }
+
+    const timestamp = Timestamp.now();
+    const mrToAdd = {
+      ...newMRData,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    await addDoc(mrCollectionRef, mrToAdd);
+    return true;
+  } catch (error) {
+    console.error("Error creating MR:", error);
+    throw error;
+  }
+}
+
+export async function getAllMr(): Promise<MR[]> {
+  try {
+    const q = query(mrCollectionRef, orderBy("created_at", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as MR[];
+  } catch (error) {
+    console.error("Error fetching all MR:", error);
+    throw error;
+  }
+}
+
+export async function getMrByKode(kode: string): Promise<MR | null> {
+  try {
+    const q = query(mrCollectionRef, where("kode", "==", kode));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as MR;
+  } catch (error) {
+    console.error(`Error fetching MR by kode ${kode}:`, error);
+    throw error;
+  }
+}
+
+export async function updateMR(
+  mrid: string,
+  updatedData: Partial<MR>
+): Promise<boolean> {
+  try {
+    const docref = doc(mrCollectionRef, mrid);
+    await updateDoc(docref, {
+      ...updatedData,
+      updated_at: Timestamp.now(),
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error updating MR with id ${mrid}:`, error);
+    throw error;
+  }
+}

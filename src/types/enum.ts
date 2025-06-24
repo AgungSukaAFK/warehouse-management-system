@@ -15,10 +15,16 @@ export type Lokasi = {
 
 export const LokasiList: Lokasi[] = [
   { nama: "JAKARTA", kode: "JKT" },
-  { nama: "ENIM", kode: "ENIM" },
-  { nama: "BPN", kode: "BPN" },
-  { nama: "BIB", kode: "BIB" },
-  { nama: "HEAD OFFICE", kode: "HO" },
+  { nama: "TANJUNG ENIM", kode: "ENIM" },
+  { nama: "BALIKPAPAN", kode: "BPN" },
+  { nama: "SITE BA", kode: "BA" },
+  { nama: "SITE TAL", kode: "TAL" },
+  { nama: "SITE MIP", kode: "MIP" },
+  { nama: "SITE MIFA", kode: "MIFA" },
+  { nama: "SITE BIB", kode: "BIB" },
+  { nama: "SITE AMI", kode: "AMI" },
+  { nama: "SITE TABANG", kode: "TAB" },
+  { nama: "unassigned", kode: "unassigned" },
 ];
 
 export type LogCategory =

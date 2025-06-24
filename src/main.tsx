@@ -21,6 +21,7 @@ import { Toaster } from "./components/ui/sonner.tsx";
 import VerifyEmailPage from "./views/verify-email/index.tsx";
 import PendingApprovalPage from "./views/unassigned/index.tsx";
 import ForgetPassword from "./views/forget-password/index.tsx";
+import { MaterialRequestDetail } from "./views/material-request/[kode]/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -55,6 +56,11 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/dokumentasi" element={<Dokumentasi />} />
 
         <Route path="/material-request" element={<MaterialRequest />} />
+
+        <Route
+          path="/material-request/:kode"
+          element={<MaterialRequestDetail />}
+        />
 
         <Route path="/purchase-order" element={<PurchaseOrder />} />
 

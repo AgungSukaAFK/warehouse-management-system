@@ -3,60 +3,87 @@ import SectionContainer, {
   SectionBody,
   SectionFooter,
 } from "@/components/content-container";
+import { EditUserDialog } from "@/components/dialog/edit-user";
 import WithSidebar from "@/components/layout/WithSidebar";
 import { MyPagination } from "@/components/my-pagination";
-import { Button } from "@/components/ui/button";
-import { getAllUsersWithCursor } from "@/services/user";
+import { getAllUsers } from "@/services/user";
 import type { UserDb } from "@/types";
-import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
-import { UserPlus } from "lucide-react";
+import { QueryDocumentSnapshot, type DocumentData } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserDb[]>([]);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(10);
-  const [lastDocs, setLastDocs] = useState<
-    Record<number, QueryDocumentSnapshot<DocumentData>>
-  >({});
-  const [hasNext, setHasNext] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalUsersCount, setTotalUsersCount] = useState<number>(0);
+  const [nextPageDoc, setNextPageDoc] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [prevPageDoc, setPrevPageDoc] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasNext, setHasNext] = useState<boolean>(false);
+  const [hasPrevious, setHasPrevious] = useState<boolean>(false);
+  const [refresh, setRefresh] = useState<boolean>(false);
+
+  const pageSize = 25; // Sesuaikan dengan limit di fungsi getAllUsers
 
   useEffect(() => {
-    async function getUsers() {
-      const cursor = page > 1 ? lastDocs[page - 1] : undefined;
-      const result = await getAllUsersWithCursor(pageSize, cursor);
+    async function fetchUsers() {
+      const result = await getAllUsers({
+        limit: pageSize,
+        startAfterDoc: currentPage === 1 ? null : nextPageDoc, // Gunakan nextPageDoc dari halaman sebelumnya
+        endBeforeDoc: currentPage === 1 ? null : prevPageDoc, // Gunakan prevPageDoc dari halaman sebelumnya
+        // Logika untuk startAfterDoc/endBeforeDoc akan diatur di `handlePageChange`
+      });
 
-      if (result) {
-        setUsers(result.data);
-
-        if (result.lastDoc) {
-          setLastDocs((prev) => ({
-            ...prev,
-            [page]: result.lastDoc!,
-          }));
-        }
-
-        // Disable "Next" button if data returned is less than pageSize
-        setHasNext(result.data.length === pageSize);
-      }
+      setUsers(result.users);
+      setTotalUsersCount(result.totalUsersCount);
+      setNextPageDoc(result.nextPageDoc);
+      setPrevPageDoc(result.prevPageDoc);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
     }
 
-    getUsers();
-  }, [page]);
+    fetchUsers();
+  }, [currentPage, refresh]);
 
-  function handleEdit(user: UserDb) {
-    console.log("Edit user:", user);
-    // Arahkan ke halaman edit atau buka modal
+  async function handlePageChange(newPage: number) {
+    if (newPage > currentPage && nextPageDoc) {
+      const result = await getAllUsers({
+        limit: pageSize,
+        startAfterDoc: nextPageDoc,
+      });
+      setUsers(result.users);
+      setNextPageDoc(result.nextPageDoc);
+      setPrevPageDoc(result.prevPageDoc);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
+      setCurrentPage(newPage);
+    } else if (newPage < currentPage && prevPageDoc) {
+      const result = await getAllUsers({
+        limit: pageSize,
+        endBeforeDoc: prevPageDoc,
+      });
+      setUsers(result.users);
+      setNextPageDoc(result.nextPageDoc);
+      setPrevPageDoc(result.prevPageDoc);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
+      setCurrentPage(newPage);
+    } else if (newPage === 1) {
+      // Kembali ke halaman pertama, reset semua state pagination
+      const result = await getAllUsers({ limit: pageSize });
+      setUsers(result.users);
+      setNextPageDoc(result.nextPageDoc);
+      setPrevPageDoc(result.prevPageDoc);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
+      setCurrentPage(1);
+    }
   }
 
-  function handleDelete(userId: string) {
-    console.log("Delete user:", userId);
-    // Konfirmasi & hapus user dari Firestore/Auth
-  }
+  const totalPages = Math.ceil(totalUsersCount / pageSize);
 
   return (
     <WithSidebar>
-      {/* Data User */}
       <SectionContainer span={12}>
         <SectionHeader>Daftar Pengguna</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-2">
@@ -77,7 +104,9 @@ export default function UserManagement() {
               <tbody>
                 {users?.map((user, index) => (
                   <tr key={user.id} className="border-b hover:bg-accent">
-                    <td className="p-2">{(page - 1) * pageSize + index + 1}</td>
+                    <td className="p-2">
+                      {(currentPage - 1) * pageSize + index + 1}
+                    </td>
                     <td className="p-2">{user.nama}</td>
                     <td className="p-2">{user.email}</td>
                     <td className="p-2">{user.role}</td>
@@ -86,19 +115,8 @@ export default function UserManagement() {
                       {user.email_verified ? "Verified" : "Not Verified"}
                     </td>
                     <td className="p-2">{user.auth_provider}</td>
-                    <td className="p-2">
-                      <button
-                        className="text-primary underline mr-2"
-                        onClick={() => handleEdit(user)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-500 underline"
-                        onClick={() => handleDelete(user.id)}
-                      >
-                        Delete
-                      </button>
+                    <td className="p-2 flex gap-2 items-center">
+                      <EditUserDialog user={user} refresh={setRefresh} />
                     </td>
                   </tr>
                 ))}
@@ -108,22 +126,13 @@ export default function UserManagement() {
         </SectionBody>
 
         <SectionFooter>
-          <MyPagination />
-        </SectionFooter>
-      </SectionContainer>
-
-      {/* Tambah Pengguna */}
-      <SectionContainer span={12}>
-        <SectionHeader>Tambah Pengguna Baru</SectionHeader>
-        <SectionBody className="grid grid-cols-12 gap-2">
-          <div className="col-span-12 border border-border rounded-sm p-2 text-center">
-            Form Tambah Pengguna
-          </div>
-        </SectionBody>
-        <SectionFooter>
-          <Button className="w-full flex gap-4">
-            Tambah <UserPlus />
-          </Button>
+          <MyPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
+          />
         </SectionFooter>
       </SectionContainer>
     </WithSidebar>

@@ -52,7 +52,7 @@ export default function WithSidebar({ children }: WithSidebarProps) {
       return (
         <BreadcrumbItem key={index}>
           {isLast ? (
-            <BreadcrumbPage>{readablePart}</BreadcrumbPage>
+            <BreadcrumbPage>{decodeURIComponent(readablePart)}</BreadcrumbPage>
           ) : (
             <BreadcrumbLink href={`/${parts.slice(0, index + 1).join("/")}`}>
               {readablePart}

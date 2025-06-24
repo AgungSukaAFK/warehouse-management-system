@@ -29,15 +29,25 @@ export interface UserComplete extends User {
 }
 
 export interface MR {
+  id?: string;
   kode: string;
-  tanggal_estimasi: Timestamp;
+  tanggal_mr: string;
+  due_date: string;
   lokasi: string;
   pic: string;
   status: string;
-  created_at: Timestamp;
-  updated_at: Timestamp;
+  priority: string;
+  created_at: Timestamp | FieldValue;
+  updated_at: Timestamp | FieldValue;
 
   barang: Item[];
+}
+
+export interface Item {
+  part_no: string;
+  part_name: string;
+  satuan: string;
+  qty: number;
 }
 
 export interface PR {
@@ -54,6 +64,7 @@ export interface PO {
   kode: string;
   kode_pr: string;
   kode_mr: string;
+  tanggal_estimasi: string;
   status: string;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -78,18 +89,15 @@ export interface Delivery {
   updated_at: Timestamp;
 }
 
-export interface Item {
+export interface Stock {
+  id?: string;
   part_no: string;
   part_name: string;
   satuan: string;
-}
-
-export interface Stock {
-  part_no: string;
-  gudang: string;
+  lokasi: string;
   max: number;
   min: number;
-  stok: number;
+  qty: number;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
