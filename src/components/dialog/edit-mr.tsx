@@ -63,21 +63,21 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
         priority,
       });
       if (res) {
-        toast.success("User berhasil diupdate");
+        toast.success("Data MR berhasil diupdate");
         refresh((prev) => !prev);
       }
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(`Gagal mengupdate user: ${error.message}`);
+        toast.error(`Gagal mengupdate nr: ${error.message}`);
       } else {
-        toast.error("Gagal mengupdate user");
+        toast.error("Gagal mengupdate nr");
       }
     }
   }
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Edit</Button>
+        <Button variant="outline">Edit Cepat</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

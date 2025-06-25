@@ -1,4 +1,4 @@
-import { auth, db, googleAuthProvider } from "@/lib/firebase";
+import { auth, googleAuthProvider, UserCollection } from "@/lib/firebase";
 import { generateAvatarUrl } from "@/lib/utils";
 import type { UserComplete, UserDb } from "@/types";
 import {
@@ -12,7 +12,6 @@ import {
 } from "firebase/auth";
 import {
   addDoc,
-  collection,
   getDocs,
   query,
   serverTimestamp,
@@ -32,8 +31,6 @@ interface SignIn {
   password: string;
 }
 
-const userCollection = "users";
-
 export async function signIn(dto: SignIn): Promise<boolean> {
   const { email, password } = dto;
   if (!email || !password) {
@@ -50,8 +47,8 @@ export async function signIn(dto: SignIn): Promise<boolean> {
     const user = userCredential.user;
 
     // Fetch user data from Firestore
-    const userRef = collection(db, userCollection);
-    const q = query(userRef, where("email", "==", user.email));
+
+    const q = query(UserCollection, where("email", "==", user.email));
     const userDoc = await getDocs(q);
     if (userDoc.empty) {
       throw new Error("User not found");
@@ -85,8 +82,7 @@ export async function signInWithGoogle(): Promise<boolean> {
       throw new Error("Email pengguna tidak ditemukan dari Google Sign-in.");
     }
 
-    const userRef = collection(db, userCollection);
-    const q = query(userRef, where("email", "==", user.email));
+    const q = query(UserCollection, where("email", "==", user.email));
     const userDocSnap = await getDocs(q);
 
     // Jika user sudah terdaftar di Firestore
@@ -108,7 +104,7 @@ export async function signInWithGoogle(): Promise<boolean> {
       updated_at: serverTimestamp(),
     };
 
-    const newDocRef = await addDoc(userRef, userData);
+    const newDocRef = await addDoc(UserCollection, userData);
     console.log("New user added to Firestore:", newDocRef.id);
 
     return true;
@@ -136,8 +132,7 @@ export async function registerUser(dto: Register) {
   }
 
   // Cek email di DB
-  const ref = collection(db, userCollection);
-  const q = query(ref, where("email", "==", email));
+  const q = query(UserCollection, where("email", "==", email));
   const userDoc = await getDocs(q);
   if (!userDoc.empty) {
     throw new Error("Email sudah terdaftar");
@@ -165,8 +160,7 @@ export async function registerUser(dto: Register) {
       updated_at: serverTimestamp(),
     };
 
-    const userRef = collection(db, userCollection);
-    await addDoc(userRef, userData);
+    await addDoc(UserCollection, userData);
 
     // Kirim email verifikasi setelah pendaftaran
     await sendEmailVerification(user);
@@ -204,8 +198,7 @@ export async function getCurrentUser(): Promise<UserComplete | null> {
       }
 
       try {
-        const userRef = collection(db, userCollection);
-        const q = query(userRef, where("email", "==", user.email));
+        const q = query(UserCollection, where("email", "==", user.email));
         const userDoc = await getDocs(q);
 
         if (userDoc.empty) {

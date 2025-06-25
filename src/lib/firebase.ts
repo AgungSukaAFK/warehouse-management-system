@@ -1,11 +1,7 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { collection, getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,8 +11,18 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Initialize Firebase Auth
 export const auth = getAuth(app);
 export const googleAuthProvider = new GoogleAuthProvider();
+
+// Initialize Firebase Firestore
+export const db = getFirestore(app);
+
+// Firestore collections
+export const UserCollection = collection(db, "users");
+export const MRCollection = collection(db, "material_requests");
+export const MasterPartCollection = collection(db, "master_parts");
+export const StockCollection = collection(db, "stocks");

@@ -22,11 +22,15 @@ import { Timestamp } from "firebase/firestore";
 import { formatTanggal } from "@/lib/utils";
 import { parse } from "date-fns";
 import { getMrByKode } from "@/services/material-request";
+import { EditMRDialog } from "@/components/dialog/edit-mr";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function MaterialRequestDetail() {
-  const { kode } = useParams<{ kode: string }>(); // Dapatkan 'kode' dari URL
+  const { kode } = useParams<{ kode: string }>();
   const [mr, setMr] = useState<MR | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchMrDetail() {
@@ -60,7 +64,7 @@ export function MaterialRequestDetail() {
     }
 
     fetchMrDetail();
-  }, [kode]); // Depend on 'kode' to refetch if URL param changes
+  }, [kode, refresh]); // Depend on 'kode' to refetch if URL param changes
 
   if (isLoading) {
     return (
@@ -76,6 +80,8 @@ export function MaterialRequestDetail() {
       </WithSidebar>
     );
   }
+
+  async function handleEditMR() {}
 
   if (!mr) {
     return (
@@ -103,7 +109,7 @@ export function MaterialRequestDetail() {
         <SectionHeader>Detail Material Request: {mr.kode}</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-6">
           {/* Informasi Umum MR */}
-          <div className="col-span-12 lg:col-span-6 space-y-4">
+          <div className="col-span-12 space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2 mb-4">
               Informasi Umum
             </h3>
@@ -165,36 +171,73 @@ export function MaterialRequestDetail() {
               </div>
             </div>
           </div>
+        </SectionBody>
+        <SectionFooter>
+          <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} />
+        </SectionFooter>
+      </SectionContainer>
 
+      <SectionContainer>
+        <SectionHeader>Tambah Barang dan Stok</SectionHeader>
+        <SectionBody>
+          <div>
+            <Input placeholder="Ketik part-number" />
+          </div>
+        </SectionBody>
+      </SectionContainer>
+
+      <SectionContainer span={12}>
+        <SectionHeader>Detail Barang</SectionHeader>
+        <SectionBody className="grid grid-cols-12 gap-6">
           {/* Daftar Barang */}
-          <div className="col-span-12 lg:col-span-6 space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2 mb-4">
-              Daftar Barang
-            </h3>
-            <div className="border border-border rounded-sm overflow-x-auto">
-              <Table>
+          <div className="col-span-12 space-y-4">
+            <div className="w-full border border-border rounded-sm overflow-x-auto">
+              <Table className="w-full">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">No</TableHead>
-                    <TableHead>Part No</TableHead>
+                  <TableRow className="[&>th]:border">
+                    <TableHead className="w-[50px] text-center">No</TableHead>
+                    <TableHead>Part Number</TableHead>
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
                     <TableHead>Jumlah</TableHead>
+                    <TableHead>Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {mr.barang && mr.barang.length > 0 ? (
                     mr.barang.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="w-[50px]">{index + 1}</TableCell>
-                        <TableCell>{item.part_no}</TableCell>
+                      <TableRow key={index} className="[&>td]:border">
+                        <TableCell className="w-[50px] text-center">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>{item.part_number}</TableCell>
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
                         <TableCell>{item.qty}</TableCell>
+                        <TableCell className="flex gap-2 items-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast.info(`Edit item: ${item.part_number}`);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              toast.error(`Hapus item: ${item.part_number}`);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow>
+                    <TableRow className="[&>td]:border">
                       <TableCell
                         colSpan={5}
                         className="text-center text-muted-foreground py-4"
@@ -208,10 +251,7 @@ export function MaterialRequestDetail() {
             </div>
           </div>
         </SectionBody>
-        <SectionFooter>
-          {/* Anda bisa menambahkan tombol aksi di sini, misalnya untuk Edit atau Cetak */}
-          {/* <Button>Edit MR</Button> */}
-        </SectionFooter>
+        <SectionFooter></SectionFooter>
       </SectionContainer>
     </WithSidebar>
   );

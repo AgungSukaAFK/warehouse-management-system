@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState, type Dispatch } from "react";
+import { formatTanggal } from "@/lib/utils";
 
 type DatePickerProps = {
   value?: Date;
@@ -26,7 +27,9 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
             id="date"
             className="w-full justify-between font-normal"
           >
-            {value ? value.toLocaleDateString() : "Pilih tanggal"}
+            {value
+              ? formatTanggal(value.toLocaleDateString("id-ID"))
+              : "Pilih tanggal"}
             <ChevronDownIcon />
           </Button>
         </PopoverTrigger>

@@ -6,14 +6,14 @@
  * 4. Get MR by id : All - done
  */
 
-import { db } from "@/lib/firebase";
+import { MRCollection } from "@/lib/firebase";
 import type { MR, UserComplete, UserDb } from "@/types";
 import { LokasiList } from "@/types/enum";
 import {
   addDoc,
-  collection,
   doc,
   getDocs,
+  limit,
   orderBy,
   query,
   Timestamp,
@@ -22,8 +22,6 @@ import {
 } from "firebase/firestore";
 
 // --- MR Service Functions ---
-
-const mrCollectionRef = collection(db, "mrs");
 
 export async function generateKodeMR(
   user: UserDb | UserComplete
@@ -35,7 +33,23 @@ export async function generateKodeMR(
   const bulanShort = (new Date().getMonth() + 1).toString();
   try {
     const templateKode = `GMI/${locationShort}/${tahunShort}/${bulanShort}/`;
-    return templateKode;
+    const q = query(
+      MRCollection,
+      where("kode", ">=", templateKode),
+      where("kode", "<", templateKode + "99999"),
+      orderBy("kode", "desc"),
+      limit(1)
+    );
+    const getLatestKodeInCollection = await getDocs(q);
+    if (getLatestKodeInCollection.empty) {
+      return templateKode + "00001";
+    }
+    const latestDoc = getLatestKodeInCollection.docs[0];
+    const latestKode = latestDoc.data().kode as string;
+    const latestNumber = parseInt(latestKode.split("/").pop() || "0", 10);
+    const nextNumber = latestNumber + 1;
+    const nextKode = nextNumber.toString().padStart(5, "0");
+    return templateKode + nextKode;
   } catch (error) {
     throw error;
   }
@@ -46,7 +60,7 @@ export async function createMR(
 ): Promise<boolean> {
   try {
     // check mr with same kode
-    const q = query(mrCollectionRef, where("kode", "==", newMRData.kode));
+    const q = query(MRCollection, where("kode", "==", newMRData.kode));
     const existingSnap = await getDocs(q);
     if (!existingSnap.empty) {
       throw new Error(
@@ -60,7 +74,7 @@ export async function createMR(
       created_at: timestamp,
       updated_at: timestamp,
     };
-    await addDoc(mrCollectionRef, mrToAdd);
+    await addDoc(MRCollection, mrToAdd);
     return true;
   } catch (error) {
     console.error("Error creating MR:", error);
@@ -70,7 +84,7 @@ export async function createMR(
 
 export async function getAllMr(): Promise<MR[]> {
   try {
-    const q = query(mrCollectionRef, orderBy("created_at", "desc"));
+    const q = query(MRCollection, orderBy("created_at", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -84,7 +98,7 @@ export async function getAllMr(): Promise<MR[]> {
 
 export async function getMrByKode(kode: string): Promise<MR | null> {
   try {
-    const q = query(mrCollectionRef, where("kode", "==", kode));
+    const q = query(MRCollection, where("kode", "==", kode));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
@@ -100,7 +114,7 @@ export async function updateMR(
   updatedData: Partial<MR>
 ): Promise<boolean> {
   try {
-    const docref = doc(mrCollectionRef, mrid);
+    const docref = doc(MRCollection, mrid);
     await updateDoc(docref, {
       ...updatedData,
       updated_at: Timestamp.now(),

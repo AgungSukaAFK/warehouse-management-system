@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/pagination";
 
 interface MyPaginationProps {
-  data: any[];
-  triggerPrevious: () => void;
-  triggerNext: () => void;
-  triggerPageChange: (page: number) => void;
-  currentPage: number;
+  data?: any[];
+  triggerPrevious?: () => void;
+  triggerNext?: () => void;
+  triggerPageChange?: (page: number) => void;
+  currentPage?: number;
 }
 
 export function MyPagination({

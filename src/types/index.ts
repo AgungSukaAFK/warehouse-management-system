@@ -44,7 +44,7 @@ export interface MR {
 }
 
 export interface Item {
-  part_no: string;
+  part_number: string;
   part_name: string;
   satuan: string;
   qty: number;
@@ -89,9 +89,18 @@ export interface Delivery {
   updated_at: Timestamp;
 }
 
+export interface MasterPart {
+  id?: string;
+  part_number: string;
+  part_name: string;
+  satuan: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 export interface Stock {
   id?: string;
-  part_no: string;
+  part_number: string;
   part_name: string;
   satuan: string;
   lokasi: string;

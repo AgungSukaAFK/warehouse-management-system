@@ -30,11 +30,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { EditMRDialog } from "@/components/dialog/edit-mr";
+import { formatTanggal } from "@/lib/utils";
 
 export default function MaterialRequest() {
   const [user, setUser] = useState<UserComplete | null>(null);
   const [mrs, setMrs] = useState<MR[]>([]);
   const [filteredMrs, setFilteredMrs] = useState<MR[]>([]);
+  const [mrToShow, setMrToShow] = useState<MR[]>([]);
   const [refresh, setRefresh] = useState<boolean>(false);
 
   // Filtering
@@ -47,6 +49,9 @@ export default function MaterialRequest() {
   const [priority, setPriority] = useState<string>("");
   const [dariTanggal, setDariTanggal] = useState<Date>();
   const [sampaiTanggal, setSampaiTanggal] = useState<Date>();
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const pageSize = 25; // Number of items per page
 
   useEffect(() => {
     async function fetchUserDataAndMRs() {
@@ -54,6 +59,7 @@ export default function MaterialRequest() {
         const mrResult = await getAllMr();
         setMrs(mrResult);
         setFilteredMrs(mrResult);
+        setMrToShow(mrResult.slice(0, pageSize));
       } catch (error) {
         if (error instanceof Error) {
           toast.error(`Gagal mengambil data: ${error.message}`);
@@ -114,6 +120,13 @@ export default function MaterialRequest() {
     }
 
     setFilteredMrs(filtered);
+    setCurrentPage(1); // Reset to first page after filtering
+    setMrToShow(filtered.slice(0, pageSize));
+    if (filtered.length === 0) {
+      toast.info("Tidak ada Material Request yang sesuai dengan filter.");
+    } else {
+      toast.success("Filter berhasil diterapkan.");
+    }
   }
 
   function resetFilters() {
@@ -126,8 +139,26 @@ export default function MaterialRequest() {
     setPriority("");
     setDariTanggal(undefined);
     setSampaiTanggal(undefined);
-    setFilteredMrs(mrs); // Reset to original list
+    setFilteredMrs(mrs);
+    setCurrentPage(1);
+    setMrToShow(mrs.slice(0, pageSize));
     toast.success("Filter telah direset.");
+  }
+
+  useEffect(() => {
+    setMrToShow(filteredMrs.slice((currentPage - 1) * 25, currentPage * 25));
+  }, [currentPage]);
+
+  function nextPage() {
+    setCurrentPage((prev) => prev + 1);
+  }
+
+  function previousPage() {
+    setCurrentPage((prev) => (prev > 1 ? prev - 1 : 1));
+  }
+
+  function pageChange(page: number) {
+    setCurrentPage(page);
   }
 
   return (
@@ -245,13 +276,19 @@ export default function MaterialRequest() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMrs.length > 0 ? (
-                  filteredMrs.map((mr, index) => (
+                {mrToShow.length > 0 ? (
+                  mrToShow.map((mr, index) => (
                     <TableRow key={mr.id} className="border [&>*]:border">
-                      <TableCell className="p-2">{index + 1}</TableCell>
+                      <TableCell className="p-2">
+                        {pageSize * (currentPage - 1) + (index + 1)}
+                      </TableCell>
                       <TableCell className="p-2">{mr.kode}</TableCell>
-                      <TableCell className="p-2">{mr.tanggal_mr}</TableCell>
-                      <TableCell className="p-2">{mr.due_date}</TableCell>
+                      <TableCell className="p-2">
+                        {formatTanggal(mr.tanggal_mr)}
+                      </TableCell>
+                      <TableCell className="p-2">
+                        {formatTanggal(mr.due_date)}
+                      </TableCell>
                       <TableCell className="p-2">{mr.lokasi}</TableCell>
                       <TableCell className="p-2">{mr.pic}</TableCell>
                       <TableCell className="p-2">{mr.status}</TableCell>
@@ -293,10 +330,12 @@ export default function MaterialRequest() {
         <SectionFooter>
           <MyPagination
             data={filteredMrs}
-            triggerNext={() => {}}
-            triggerPageChange={() => {}}
-            triggerPrevious={() => {}}
-            currentPage={1}
+            triggerNext={nextPage}
+            triggerPageChange={(e) => {
+              pageChange(e);
+            }}
+            triggerPrevious={previousPage}
+            currentPage={currentPage}
           />
         </SectionFooter>
       </SectionContainer>

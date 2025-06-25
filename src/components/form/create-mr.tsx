@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { createMR, generateKodeMR } from "@/services/material-request";
-import type { Item, MR, UserComplete, UserDb } from "@/types";
+import type { Item, MasterPart, MR, UserComplete, UserDb } from "@/types";
 import { DatePicker } from "../date-picker";
 import {
   Select,
@@ -26,6 +26,18 @@ import { AddItemMRDialog } from "../dialog/add-item-mr";
 import { Button } from "../ui/button";
 import { serverTimestamp } from "firebase/firestore";
 import { LokasiList } from "@/types/enum";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
+import { cn } from "@/lib/utils";
+import { getMasterParts } from "@/services/master-part";
 
 interface CreateMRFormProps {
   user: UserComplete | UserDb;
@@ -38,34 +50,61 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
   const [tanggalMR, setTanggalMR] = useState<Date | undefined>(new Date());
   const [mrItems, setMRItems] = useState<Item[]>([]);
 
+  // Pencarian master part
+  const [open, setOpen] = useState<boolean>(false);
+  const [masterParts, setMasterParts] = useState<MasterPart[]>([]);
+  const [filteredParts, setFilteredParts] = useState<MasterPart[]>([]);
+  const [selectedPart, setSelectedPart] = useState<MasterPart>();
+
+  // Fetch master parts
   useEffect(() => {
-    async function fetchKodeMR() {
+    async function fetchMasterParts() {
       try {
-        const kode = await generateKodeMR(user);
-        setKodeMR(kode);
+        const parts = await getMasterParts();
+        setMasterParts(parts);
+        setFilteredParts(parts);
       } catch (error) {
         if (error instanceof Error) {
-          toast.error(`Gagal menghasilkan Kode MR: ${error.message}`);
+          toast.error(`Gagal mengambil data master part: ${error.message}`);
         } else {
-          toast.error("Terjadi kesalahan saat menghasilkan Kode MR.");
+          toast.error("Terjadi kesalahan saat mengambil data master part.");
         }
       }
     }
 
+    fetchMasterParts();
+  }, []);
+
+  // Fetch kode MR
+  async function fetchKodeMR() {
+    toast.info("Menghasilkan Kode MR baru...");
+    try {
+      const kode = await generateKodeMR(user);
+      setKodeMR(kode);
+      toast.success("Kode MR sudah terbaru.");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(`Gagal menghasilkan Kode MR: ${error.message}`);
+      } else {
+        toast.error("Terjadi kesalahan saat menghasilkan Kode MR.");
+      }
+    }
+  }
+
+  useEffect(() => {
     fetchKodeMR();
-  }, [kodeMR]);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const lokasi = formData.get("lokasi") as string;
+    const lokasi = user.lokasi;
     const status = "open";
-    const numberMR = formData.get("numberMR") as string;
     const priority = formData.get("priority") as string;
 
     if (
-      !numberMR ||
+      !kodeMR ||
       !duedate ||
       !tanggalMR ||
       !lokasi ||
@@ -78,7 +117,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
       toast.warning("Data belum lengkap.");
       console.log(
         "Data belum lengkap:",
-        numberMR,
+        kodeMR,
         duedate,
         tanggalMR,
         lokasi,
@@ -92,7 +131,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
     }
 
     const data: MR = {
-      kode: `${kodeMR}${numberMR.padStart(5, "0")}`,
+      kode: kodeMR,
       tanggal_mr: tanggalMR.toLocaleDateString("id-ID"),
       due_date: duedate.toLocaleDateString("id-ID"),
       lokasi: lokasi,
@@ -125,15 +164,22 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
     }
   }
 
-  function handleAddItem(item: Item) {
-    if (!item.part_no || !item.part_name || !item.satuan || item.qty <= 0) {
+  function handleAddItem(part: MasterPart, qty: number) {
+    if (!part || !qty || qty <= 0) {
       toast.error(
         "Mohon lengkapi semua detail item dan pastikan kuantitas valid."
       );
       return;
     }
 
-    setMRItems((prevItems) => [...prevItems, item]);
+    const newItem: Item = {
+      part_name: part.part_name,
+      part_number: part.part_number,
+      satuan: part.satuan,
+      qty: qty,
+    };
+
+    setMRItems((prevItems) => [...prevItems, newItem]);
     toast.success("Item berhasil ditambahkan ke daftar.");
   }
   return (
@@ -146,26 +192,23 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
         {/* Kode MR */}
         <div className="flex flex-col gap-2">
           <Label>Kode MR</Label>
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <Input
-              value={kodeMR}
+              name="numberMR"
               disabled
-              className="outline-none border-none w-fit lg:tracking-wider"
+              value={kodeMR}
+              className="lg:tracking-wider"
             />
-            <Input name="numberMR" placeholder="Input nomor MR" />
+            <Button
+              variant={"outline"}
+              type="button"
+              onClick={async () => await fetchKodeMR()}
+            >
+              Refresh
+            </Button>
           </div>
         </div>
 
-        {/* PIC */}
-        <div className="flex flex-col gap-2">
-          <Label>Person in Charge</Label>
-          <div className="flex items-center">
-            <Input value={user.nama} name="pic" disabled />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col col-span-12 lg:col-span-4 gap-4">
         {/* Tanggal MR */}
         <div className="flex flex-col gap-2">
           <Label>Tanggal MR</Label>
@@ -173,10 +216,20 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
             <DatePicker value={tanggalMR} onChange={setTanggalMR} />
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-col col-span-12 lg:col-span-4 gap-4">
+        {/* PIC */}
+        <div className="flex flex-col gap-2">
+          <Label>Person in Charge</Label>
+          <div className="flex items-center">
+            <Input value={user.nama} name="pic" disabled />
+          </div>
+        </div>
 
         {/* Tanggal duedate */}
         <div className="flex flex-col gap-2">
-          <Label>Tanggal duedate</Label>
+          <Label>Tanggal due date</Label>
           <div className="flex items-center">
             <DatePicker value={duedate} onChange={setDueDate} />
           </div>
@@ -188,14 +241,17 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
         <div className="flex flex-col gap-2">
           <Label>Lokasi</Label>
           <div className="flex items-center">
-            <Select required name="lokasi">
+            <Select required name="lokasi" disabled>
               <SelectTrigger className="w-full" name="lokasi" id="lokasi">
-                <SelectValue placeholder={user.lokasi} />
+                <SelectValue
+                  placeholder={user.lokasi}
+                  defaultValue={user.lokasi}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Daftar Lokasi</SelectLabel>
-                  {LokasiList.map((lokasi) => (
+                  {LokasiList?.map((lokasi) => (
                     <SelectItem key={lokasi.kode} value={lokasi.nama}>
                       {lokasi.nama}
                     </SelectItem>
@@ -227,10 +283,75 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
       </div>
 
       {/* Tambah Item MR */}
-      <AddItemMRDialog
-        onAddItem={handleAddItem}
-        triggerButton={<Button className="w-fit">Tambah Barang</Button>}
-      />
+      <div className="col-span-12 grid grid-cols-12 gap-4">
+        {/* Combobox */}
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn("col-span-12 lg:col-span-8 justify-between")}
+            >
+              {selectedPart
+                ? masterParts.find(
+                    (part: MasterPart) =>
+                      part.part_number === selectedPart.part_number
+                  )?.part_number
+                : "Cari part number..."}
+              <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
+            <Command>
+              <CommandInput placeholder="Cari part number..." />
+              <CommandList>
+                <CommandEmpty>Tidak ada.</CommandEmpty>
+                <CommandGroup>
+                  {filteredParts?.map((part) => (
+                    <CommandItem
+                      key={part.part_number}
+                      value={part.part_number}
+                      onSelect={(currentValue) => {
+                        setSelectedPart(
+                          masterParts.find(
+                            (part) => part.part_number === currentValue
+                          )
+                        );
+                        setOpen(false);
+                      }}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedPart?.part_number === part.part_number
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {`${part.part_number} | ${part.part_name}`}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <AddItemMRDialog
+          selectedPart={selectedPart}
+          onAddItem={handleAddItem}
+          triggerButton={
+            <Button
+              className="col-span-12 md:col-span-4"
+              variant={"outline"}
+              disabled={!selectedPart}
+            >
+              Tambah Barang
+            </Button>
+          }
+        />
+      </div>
 
       <div className="col-span-12">
         <Table>
@@ -240,7 +361,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
                 No
               </TableHead>
               <TableHead className="font-semibold text-center">
-                Part No
+                Part Number
               </TableHead>
               <TableHead className="font-semibold text-center">
                 Part Name
@@ -253,10 +374,12 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
           </TableHeader>
           <TableBody>
             {mrItems.length > 0 ? (
-              mrItems.map((item, index) => (
+              mrItems?.map((item, index) => (
                 <TableRow key={index} className="border [&>*]:border">
                   <TableCell className="w-[50px]">{index + 1}</TableCell>
-                  <TableCell className="text-start">{item.part_no}</TableCell>
+                  <TableCell className="text-start">
+                    {item.part_number}
+                  </TableCell>
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
                   <TableCell>{item.qty}</TableCell>
