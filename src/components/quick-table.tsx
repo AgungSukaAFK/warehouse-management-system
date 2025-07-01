@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PagingSize } from "@/types/enum";
 import type { ReactNode } from "react";
 
 export interface ColumnDef<TData> {
@@ -23,12 +24,14 @@ interface QuickTableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData>[];
   emptyMessage?: string;
+  page: number;
 }
 
 export function QuickTable<TData>({
   data,
   columns,
   emptyMessage = "Tidak ada data yang ditemukan.",
+  page = 1,
 }: QuickTableProps<TData>) {
   return (
     <div className="rounded-md border overflow-x-auto">
@@ -36,6 +39,7 @@ export function QuickTable<TData>({
         {/* Table Header */}
         <TableHeader>
           <TableRow className="border [&>*]:border">
+            <TableHead className="p-2 text-center">No</TableHead>
             {columns.map((column, index) => (
               <TableHead
                 key={(column.accessorKey as string) || index}
@@ -52,9 +56,10 @@ export function QuickTable<TData>({
           {data.length > 0 ? (
             data.map((row, rowIndex) => (
               <TableRow key={rowIndex} className="border [&>*]:border">
+                <TableCell className="p-2 text-center">
+                  {(page - 1) * PagingSize + (rowIndex + 1)}
+                </TableCell>
                 {columns.map((column, colIndex) => {
-                  // Mengambil nilai dari row berdasarkan accessorKey
-                  // Menggunakan 'any' untuk mengakses properti dinamis
                   const cellValue = (row as any)[column.accessorKey];
 
                   return (

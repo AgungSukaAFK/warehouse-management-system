@@ -32,7 +32,7 @@ export async function generateKodeMR(
   const tahunShort = new Date().getFullYear().toString().slice(-2);
   const bulanShort = (new Date().getMonth() + 1).toString();
   try {
-    const templateKode = `GMI/${locationShort}/${tahunShort}/${bulanShort}/`;
+    const templateKode = `GMI/${locationShort}/${tahunShort}/`;
     const q = query(
       MRCollection,
       where("kode", ">=", templateKode),
@@ -42,14 +42,14 @@ export async function generateKodeMR(
     );
     const getLatestKodeInCollection = await getDocs(q);
     if (getLatestKodeInCollection.empty) {
-      return templateKode + "00001";
+      return templateKode + bulanShort + "/00001";
     }
     const latestDoc = getLatestKodeInCollection.docs[0];
     const latestKode = latestDoc.data().kode as string;
     const latestNumber = parseInt(latestKode.split("/").pop() || "0", 10);
     const nextNumber = latestNumber + 1;
     const nextKode = nextNumber.toString().padStart(5, "0");
-    return templateKode + nextKode;
+    return `${templateKode}${bulanShort}/${nextKode}`;
   } catch (error) {
     throw error;
   }
@@ -84,7 +84,7 @@ export async function createMR(
 
 export async function getAllMr(): Promise<MR[]> {
   try {
-    const q = query(MRCollection, orderBy("created_at", "desc"));
+    const q = query(MRCollection, orderBy("kode", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       id: doc.id,

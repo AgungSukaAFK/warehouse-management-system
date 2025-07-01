@@ -34,3 +34,5 @@ export type LogCategory =
   | "Purchase Order"
   | "Receive Item"
   | "Delivery";
+
+export const PagingSize = 25;

@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { PagingSize } from "@/types/enum";
 
 interface MyPaginationProps {
   data?: any[];
@@ -23,14 +24,14 @@ export function MyPagination({
   triggerPageChange = () => {},
   currentPage = 0,
 }: MyPaginationProps) {
-  const totalPages = Math.ceil(data.length / 25);
+  const totalPages = Math.ceil(data.length / PagingSize);
   const hasPrevious = currentPage > 1;
   const hasNext = currentPage < totalPages;
   const maxVisiblePages = 5;
 
   const getPageNumbersToShow = () => {
     const pages: (number | string)[] = [];
-    const totalPages = Math.ceil(data.length / 25);
+    const totalPages = Math.ceil(data.length / PagingSize);
 
     if (totalPages <= maxVisiblePages) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);

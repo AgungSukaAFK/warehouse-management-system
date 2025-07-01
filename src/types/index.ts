@@ -47,6 +47,7 @@ export interface Item {
   part_number: string;
   part_name: string;
   satuan: string;
+  lokasi: string;
   qty: number;
 }
 

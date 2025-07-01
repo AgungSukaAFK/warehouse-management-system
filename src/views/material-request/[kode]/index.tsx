@@ -24,7 +24,7 @@ import { parse } from "date-fns";
 import { getMrByKode } from "@/services/material-request";
 import { EditMRDialog } from "@/components/dialog/edit-mr";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Stepper, { type Step } from "@/components/stepper";
 
 export function MaterialRequestDetail() {
   const { kode } = useParams<{ kode: string }>();
@@ -103,8 +103,27 @@ export function MaterialRequestDetail() {
     );
   }
 
+  const dummyStepper: Step[] = [
+    {
+      title: "Pembuatan Material Request",
+      description: "Material Request telah dibuat.",
+      status: "completed",
+    },
+    {
+      title: "Delivery",
+      description: "Barang akan dikirim setelah diterima.",
+      status: "active",
+      cta: (
+        <Button variant="default" size="sm">
+          Buat Delivery
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <WithSidebar>
+      {/* Detail MR */}
       <SectionContainer span={12}>
         <SectionHeader>Detail Material Request: {mr.kode}</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-6">
@@ -177,12 +196,11 @@ export function MaterialRequestDetail() {
         </SectionFooter>
       </SectionContainer>
 
+      {/* Progress tracker */}
       <SectionContainer>
-        <SectionHeader>Tambah Barang dan Stok</SectionHeader>
+        <SectionHeader>Progress Material Request</SectionHeader>
         <SectionBody>
-          <div>
-            <Input placeholder="Ketik part-number" />
-          </div>
+          <Stepper steps={dummyStepper} />
         </SectionBody>
       </SectionContainer>
 

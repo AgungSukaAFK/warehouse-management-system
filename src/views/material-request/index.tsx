@@ -6,7 +6,7 @@ import SectionContainer, {
 import WithSidebar from "@/components/layout/WithSidebar";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/services/auth";
-import type { MR, UserComplete } from "@/types";
+import type { MR, Stock, UserComplete } from "@/types";
 import { ClipboardPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/popover";
 import { EditMRDialog } from "@/components/dialog/edit-mr";
 import { formatTanggal } from "@/lib/utils";
+import { PagingSize } from "@/types/enum";
+import { getAllStocks } from "@/services/stock";
 
 export default function MaterialRequest() {
   const [user, setUser] = useState<UserComplete | null>(null);
@@ -38,6 +40,7 @@ export default function MaterialRequest() {
   const [filteredMrs, setFilteredMrs] = useState<MR[]>([]);
   const [mrToShow, setMrToShow] = useState<MR[]>([]);
   const [refresh, setRefresh] = useState<boolean>(false);
+  const [stocks, setStocks] = useState<Stock[]>([]);
 
   // Filtering
   const [tanggalMr, setTanggalMr] = useState<Date>();
@@ -51,15 +54,13 @@ export default function MaterialRequest() {
   const [sampaiTanggal, setSampaiTanggal] = useState<Date>();
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const pageSize = 25; // Number of items per page
-
   useEffect(() => {
     async function fetchUserDataAndMRs() {
       try {
         const mrResult = await getAllMr();
         setMrs(mrResult);
         setFilteredMrs(mrResult);
-        setMrToShow(mrResult.slice(0, pageSize));
+        setMrToShow(mrResult.slice(0, PagingSize));
       } catch (error) {
         if (error instanceof Error) {
           toast.error(`Gagal mengambil data: ${error.message}`);
@@ -72,6 +73,24 @@ export default function MaterialRequest() {
 
     fetchUserDataAndMRs();
   }, [refresh]);
+
+  useEffect(() => {
+    async function fetchStockData() {
+      try {
+        const stockResult = await getAllStocks();
+        setStocks(stockResult);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(`Gagal mengambil data: ${error.message}`);
+        } else {
+          toast.error("Gagal mengambil data stock.");
+        }
+        setUser(null);
+      }
+    }
+
+    fetchStockData();
+  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -96,19 +115,29 @@ export default function MaterialRequest() {
       );
     }
     if (lokasi) {
-      filtered = filtered.filter((mr) => mr.lokasi.includes(lokasi));
+      filtered = filtered.filter((mr) =>
+        mr.lokasi.toLowerCase().includes(lokasi.toLowerCase())
+      );
     }
     if (pic) {
-      filtered = filtered.filter((mr) => mr.pic.includes(pic));
+      filtered = filtered.filter((mr) =>
+        mr.pic.toLowerCase().includes(pic.toLowerCase())
+      );
     }
     if (status) {
-      filtered = filtered.filter((mr) => mr.status.includes(status));
+      filtered = filtered.filter((mr) =>
+        mr.status.toLowerCase().includes(status.toLowerCase())
+      );
     }
     if (priority) {
-      filtered = filtered.filter((mr) => mr.priority.includes(priority));
+      filtered = filtered.filter((mr) =>
+        mr.priority.toLowerCase().includes(priority.toLowerCase())
+      );
     }
     if (kode) {
-      filtered = filtered.filter((mr) => mr.kode.includes(kode));
+      filtered = filtered.filter((mr) =>
+        mr.kode.toLowerCase().includes(kode.toLowerCase())
+      );
     }
     if (dariTanggal && sampaiTanggal) {
       const dari = new Date(dariTanggal);
@@ -121,7 +150,7 @@ export default function MaterialRequest() {
 
     setFilteredMrs(filtered);
     setCurrentPage(1); // Reset to first page after filtering
-    setMrToShow(filtered.slice(0, pageSize));
+    setMrToShow(filtered.slice(0, PagingSize));
     if (filtered.length === 0) {
       toast.info("Tidak ada Material Request yang sesuai dengan filter.");
     } else {
@@ -141,12 +170,17 @@ export default function MaterialRequest() {
     setSampaiTanggal(undefined);
     setFilteredMrs(mrs);
     setCurrentPage(1);
-    setMrToShow(mrs.slice(0, pageSize));
+    setMrToShow(mrs.slice(0, PagingSize));
     toast.success("Filter telah direset.");
   }
 
   useEffect(() => {
-    setMrToShow(filteredMrs.slice((currentPage - 1) * 25, currentPage * 25));
+    setMrToShow(
+      filteredMrs.slice(
+        (currentPage - 1) * PagingSize,
+        currentPage * PagingSize
+      )
+    );
   }, [currentPage]);
 
   function nextPage() {
@@ -167,6 +201,7 @@ export default function MaterialRequest() {
       <SectionContainer span={12}>
         <SectionHeader>Daftar Material Request</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-2">
+          {/* Filtering */}
           <div className="col-span-12 grid grid-cols-12 gap-4 items-end">
             {/* Search by kode */}
             <div className="col-span-12 md:col-span-4 lg:col-span-5">
@@ -280,7 +315,7 @@ export default function MaterialRequest() {
                   mrToShow.map((mr, index) => (
                     <TableRow key={mr.id} className="border [&>*]:border">
                       <TableCell className="p-2">
-                        {pageSize * (currentPage - 1) + (index + 1)}
+                        {PagingSize * (currentPage - 1) + (index + 1)}
                       </TableCell>
                       <TableCell className="p-2">{mr.kode}</TableCell>
                       <TableCell className="p-2">
@@ -346,7 +381,11 @@ export default function MaterialRequest() {
           <SectionHeader>Tambah MR Baru</SectionHeader>
           <SectionBody className="grid grid-cols-12 gap-2">
             <div className="col-span-12 border border-border rounded-sm p-2 text-center">
-              <CreateMRForm user={user} setRefresh={setRefresh} />
+              <CreateMRForm
+                stocks={stocks}
+                user={user}
+                setRefresh={setRefresh}
+              />
             </div>
           </SectionBody>
           <SectionFooter>

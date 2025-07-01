@@ -6,88 +6,183 @@ import SectionContainer, {
 import { EditUserDialog } from "@/components/dialog/edit-user";
 import WithSidebar from "@/components/layout/WithSidebar";
 import { MyPagination } from "@/components/my-pagination";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { getAllUsers } from "@/services/user";
 import type { UserDb } from "@/types";
-import { QueryDocumentSnapshot, type DocumentData } from "firebase/firestore";
+import { PagingSize } from "@/types/enum";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserDb[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserDb[]>([]);
+  const [tableUsers, setTableUsers] = useState<UserDb[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalUsersCount, setTotalUsersCount] = useState<number>(0);
-  const [nextPageDoc, setNextPageDoc] =
-    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [prevPageDoc, setPrevPageDoc] =
-    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasNext, setHasNext] = useState<boolean>(false);
-  const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [refresh, setRefresh] = useState<boolean>(false);
 
-  const pageSize = 25; // Sesuaikan dengan limit di fungsi getAllUsers
+  // Filtering
+  const [email, setEmail] = useState<string>("");
+  const [nama, setNama] = useState<string>("");
+  const [lokasi, setLokasi] = useState<string>("");
+  const [role, setRole] = useState<string>("");
+  const [provider, setProvider] = useState<string>("");
 
   useEffect(() => {
     async function fetchUsers() {
-      const result = await getAllUsers({
-        limit: pageSize,
-        startAfterDoc: currentPage === 1 ? null : nextPageDoc, // Gunakan nextPageDoc dari halaman sebelumnya
-        endBeforeDoc: currentPage === 1 ? null : prevPageDoc, // Gunakan prevPageDoc dari halaman sebelumnya
-        // Logika untuk startAfterDoc/endBeforeDoc akan diatur di `handlePageChange`
-      });
-
-      setUsers(result.users);
-      setTotalUsersCount(result.totalUsersCount);
-      setNextPageDoc(result.nextPageDoc);
-      setPrevPageDoc(result.prevPageDoc);
-      setHasNext(result.hasNext);
-      setHasPrevious(result.hasPrevious);
+      const result = await getAllUsers();
+      if (result) {
+        setUsers(result);
+        setFilteredUsers(result);
+        setTableUsers(result.slice(0, PagingSize));
+        resetFilter();
+      } else {
+        toast.error("Gagal memuat data pengguna");
+      }
     }
 
     fetchUsers();
-  }, [currentPage, refresh]);
+  }, [refresh]);
 
-  async function handlePageChange(newPage: number) {
-    if (newPage > currentPage && nextPageDoc) {
-      const result = await getAllUsers({
-        limit: pageSize,
-        startAfterDoc: nextPageDoc,
-      });
-      setUsers(result.users);
-      setNextPageDoc(result.nextPageDoc);
-      setPrevPageDoc(result.prevPageDoc);
-      setHasNext(result.hasNext);
-      setHasPrevious(result.hasPrevious);
-      setCurrentPage(newPage);
-    } else if (newPage < currentPage && prevPageDoc) {
-      const result = await getAllUsers({
-        limit: pageSize,
-        endBeforeDoc: prevPageDoc,
-      });
-      setUsers(result.users);
-      setNextPageDoc(result.nextPageDoc);
-      setPrevPageDoc(result.prevPageDoc);
-      setHasNext(result.hasNext);
-      setHasPrevious(result.hasPrevious);
-      setCurrentPage(newPage);
-    } else if (newPage === 1) {
-      // Kembali ke halaman pertama, reset semua state pagination
-      const result = await getAllUsers({ limit: pageSize });
-      setUsers(result.users);
-      setNextPageDoc(result.nextPageDoc);
-      setPrevPageDoc(result.prevPageDoc);
-      setHasNext(result.hasNext);
-      setHasPrevious(result.hasPrevious);
-      setCurrentPage(1);
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * PagingSize;
+    const endIndex = startIndex + PagingSize;
+    setTableUsers(filteredUsers.slice(startIndex, endIndex));
+  }, [filteredUsers, currentPage]);
+
+  useEffect(() => {
+    let data = users;
+
+    if (email) {
+      data = data.filter((user) =>
+        user.email.toLowerCase().includes(email.toLowerCase())
+      );
     }
-  }
+    if (nama) {
+      data = data.filter((user) =>
+        user.nama.toLowerCase().includes(nama.toLowerCase())
+      );
+    }
+    if (lokasi) {
+      data = data.filter((user) =>
+        user.lokasi.toLowerCase().includes(lokasi.toLowerCase())
+      );
+    }
+    if (role) {
+      data = data.filter((user) =>
+        user.role.toLowerCase().includes(role.toLowerCase())
+      );
+    }
+    if (provider) {
+      data = data.filter((user) =>
+        user.auth_provider.toLowerCase().includes(provider.toLowerCase())
+      );
+    }
 
-  const totalPages = Math.ceil(totalUsersCount / pageSize);
+    setFilteredUsers(data);
+    setTableUsers(data.slice(0, PagingSize));
+    setCurrentPage(1);
+  }, [users, email, nama, lokasi, role, provider]);
+
+  function resetFilter() {
+    setEmail("");
+    setNama("");
+    setLokasi("");
+    setRole("");
+    setProvider("");
+  }
 
   return (
     <WithSidebar>
       <SectionContainer span={12}>
         <SectionHeader>Daftar Pengguna</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-2">
-          <div className="col-span-12 border border-border rounded-sm p-2 overflow-x-auto">
+          <div className="flex flex-col gap-4 col-span-12 border border-border rounded-sm p-2 overflow-x-auto">
+            {/* Filtering */}
+            <div className="col-span-12 grid grid-cols-12 gap-4 items-end">
+              {/* Search by email */}
+              <div className="col-span-12 md:col-span-4 lg:col-span-5">
+                <Input
+                  placeholder="Cari berdasarkan email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              {/* Filter popover */}
+              <div className="col-span-12 md:col-span-4 lg:col-span-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      Filter Tambahan
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 space-y-4">
+                    {/* nama */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Nama
+                      </label>
+                      <Input
+                        placeholder="nama"
+                        value={nama}
+                        onChange={(e) => setNama(e.target.value)}
+                      />
+                    </div>
+                    {/* role */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Role
+                      </label>
+                      <Input
+                        placeholder="role"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      />
+                    </div>
+                    {/* Lokasi */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Lokasi
+                      </label>
+                      <Input
+                        placeholder="lokasi"
+                        value={lokasi}
+                        onChange={(e) => setLokasi(e.target.value)}
+                      />
+                    </div>
+                    {/* Provider */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Login Provider
+                      </label>
+                      <Input
+                        placeholder="provider"
+                        value={provider}
+                        onChange={(e) => setProvider(e.target.value)}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Clear filter button */}
+              <div className="col-span-12 md:col-span-4 lg:col-span-2">
+                <Button
+                  className="w-full"
+                  variant={"destructive"}
+                  onClick={resetFilter}
+                >
+                  Hapus Filter
+                </Button>
+              </div>
+            </div>
+
             <table className="min-w-full text-sm text-left border-collapse table-auto">
               <thead>
                 <tr className="bg-muted text-muted-foreground border-b">
@@ -102,10 +197,10 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {users?.map((user, index) => (
+                {tableUsers?.map((user, index) => (
                   <tr key={user.id} className="border-b hover:bg-accent">
                     <td className="p-2">
-                      {(currentPage - 1) * pageSize + index + 1}
+                      {(currentPage - 1) * PagingSize + index + 1}
                     </td>
                     <td className="p-2">{user.nama}</td>
                     <td className="p-2">{user.email}</td>
@@ -127,11 +222,17 @@ export default function UserManagement() {
 
         <SectionFooter>
           <MyPagination
+            data={filteredUsers}
             currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
+            triggerNext={() => {
+              setCurrentPage((prev) => prev + 1);
+            }}
+            triggerPrevious={() => {
+              setCurrentPage((prev) => prev - 1);
+            }}
+            triggerPageChange={(page: number) => {
+              setCurrentPage(page);
+            }}
           />
         </SectionFooter>
       </SectionContainer>

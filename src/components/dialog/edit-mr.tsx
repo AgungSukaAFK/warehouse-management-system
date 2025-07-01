@@ -77,14 +77,14 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Edit Cepat</Button>
+        <Button variant="outline" size={"sm"}>
+          Edit Cepat
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit MR</DialogTitle>
-          <DialogDescription>
-            Ubah informaasi mr yang dipilih.
-          </DialogDescription>
+          <DialogDescription>Ubah informasi mr yang dipilih.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} id="edit-user-form">
           <div className="grid gap-4">
