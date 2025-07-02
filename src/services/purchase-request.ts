@@ -6,15 +6,14 @@
  * 4. Get PR by id : All
  */
 
-import { MRCollection, PRCollection } from "@/lib/firebase";
-import type { MR, PR } from "@/types";
+import { PRCollection } from "@/lib/firebase";
+import type { PR } from "@/types";
 import {
   addDoc,
   getDocs,
   orderBy,
   query,
   Timestamp,
-  updateDoc,
   where,
 } from "firebase/firestore";
 
@@ -68,36 +67,6 @@ export async function createPR(
     return true;
   } catch (error) {
     console.error("Error creating PR:", error);
-    throw error;
-  }
-}
-
-export async function updateMRProgress(kode: string) {
-  try {
-    const q = query(MRCollection, where("kode", "==", kode));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-      throw new Error(`MR dengan kode ${kode} tidak ditemukan.`);
-    }
-
-    const mrDoc = snapshot.docs[0];
-    const mrData = mrDoc.data();
-
-    // Update progress logic here
-    const prStep = (mrData as MR).progress.find(
-      (step) => step.title === "Purchase Request"
-    );
-    if (prStep) {
-      prStep.status = "completed";
-    }
-    mrData.updated_at = Timestamp.now();
-
-    // Update the document in Firestore
-    await updateDoc(mrDoc.ref, mrData);
-
-    return true;
-  } catch (error) {
-    console.error(`Error updating PR progress for kode ${kode}:`, error);
     throw error;
   }
 }

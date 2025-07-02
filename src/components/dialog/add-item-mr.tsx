@@ -1,5 +1,5 @@
 // components/dialog/AddItemMRDialog.tsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,33 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import type { MasterPart, Stock } from "@/types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { LokasiList } from "@/types/enum";
+import type { MasterPart } from "@/types";
 
 interface AddItemMRDialogProps {
   selectedPart: MasterPart | undefined;
-  onAddItem: (part: MasterPart, qty: number, lokasi: string) => void; // Callback untuk menambahkan item ke daftar di parent
-  triggerButton: React.ReactNode; // Tombol yang memicu dialog
-  stocks: Stock[];
+  onAddItem: (part: MasterPart, qty: number) => void; // Callback untuk menambahkan item ke daftar di parent
+  triggerButton: React.ReactNode;
 }
 
 export function AddItemMRDialog({
   selectedPart,
   onAddItem,
   triggerButton,
-  stocks = [],
 }: AddItemMRDialogProps) {
   const [qty, setQty] = useState<number>(1);
-  const [isOpen, setIsOpen] = useState(false); // State untuk mengontrol buka/tutup dialog
-  const [selectedLokasi, setSelectedLokasi] = useState<string>("");
-  const [stockData, setStockData] = useState<string>("");
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleSaveItem = () => {
     if (!selectedPart || qty <= 0) {
@@ -49,30 +37,12 @@ export function AddItemMRDialog({
       return;
     }
 
-    onAddItem(selectedPart, qty, selectedLokasi);
+    onAddItem(selectedPart, qty);
 
     // Reset form dan tutup dialog
     setQty(1);
     setIsOpen(false);
   };
-
-  useEffect(() => {
-    getStockData();
-  }, [selectedLokasi]);
-
-  function getStockData() {
-    const data = stocks.find(
-      (stock) =>
-        stock.part_number === selectedPart?.part_number &&
-        stock.lokasi === selectedLokasi
-    );
-
-    if (data) {
-      setStockData(`${data.qty} (${data.min} | ${data.max})`);
-      return;
-    }
-    setStockData("-");
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -114,27 +84,6 @@ export function AddItemMRDialog({
               disabled
               required
             />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="satuan">Ambil dari gudang</Label>
-            <Select onValueChange={(setLokasi) => setSelectedLokasi(setLokasi)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih gudang" />
-              </SelectTrigger>
-              <SelectContent>
-                {LokasiList.map((lokasi) => (
-                  <SelectItem key={lokasi.nama} value={lokasi.nama}>
-                    {lokasi.nama}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="satuan">Stok (min | max)</Label>
-            <Input id="satuan" value={stockData} disabled required />
           </div>
 
           <div className="flex flex-col gap-2">

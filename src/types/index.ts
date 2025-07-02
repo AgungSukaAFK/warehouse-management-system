@@ -1,7 +1,6 @@
 import type { FieldValue, Timestamp } from "firebase/firestore";
 import type { AuthProvider, LogCategory } from "./enum";
 import type { User } from "firebase/auth";
-import type { Step } from "@/components/stepper";
 
 export interface UserDb {
   id: string;
@@ -38,8 +37,6 @@ export interface MR {
   pic: string;
   status: string;
   priority: string;
-  need_pr: boolean;
-  progress: Step[];
   created_at: Timestamp | FieldValue;
   updated_at: Timestamp | FieldValue;
 
@@ -50,7 +47,14 @@ export interface Item {
   part_number: string;
   part_name: string;
   satuan: string;
-  lokasi: string;
+  qty: number;
+}
+
+export interface PRItem {
+  part_number: string;
+  part_name: string;
+  satuan: string;
+  kode_mr: string;
   qty: number;
 }
 
@@ -62,7 +66,7 @@ export interface PR {
   updated_at: Timestamp;
   lokasi: string;
   pic: string;
-  order_item: Omit<Item, "lokasi">[];
+  order_item: PRItem[];
 
   mrs: string[];
 }
@@ -85,11 +89,16 @@ export interface RI {
 }
 
 export interface Delivery {
+  id?: string;
   kode_it: string;
   kode_mr: string;
   ekspedisi: string;
   resi_pengiriman: string;
   status: string;
+  dari_gudang: string;
+  ke_gudang: string;
+  tanggal_pengiriman?: Timestamp;
+  pic: string;
   jumlah_koli: number;
   created_at: Timestamp;
   updated_at: Timestamp;

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { getAllMr } from "@/services/material-request";
-import type { Item, MasterPart, MR, PR, UserComplete, UserDb } from "@/types";
+import type { MasterPart, MR, PR, PRItem, UserComplete, UserDb } from "@/types";
 import { DatePicker } from "../date-picker";
 import {
   Select,
@@ -37,17 +37,17 @@ import {
 import { cn } from "@/lib/utils";
 import { getMasterParts } from "@/services/master-part";
 import { AddItemPRDialog } from "../dialog/add-item-pr";
-import { createPR, updateMRProgress } from "@/services/purchase-request";
+import { createPR } from "@/services/purchase-request";
 import { Timestamp } from "firebase/firestore";
 
-interface CreateMRFormProps {
+interface CreatePRFormProps {
   user: UserComplete | UserDb;
   setRefresh: Dispatch<SetStateAction<boolean>>;
 }
 
-export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
+export default function CreatePRForm({ user, setRefresh }: CreatePRFormProps) {
   const [tanggalPR, setTanggalPR] = useState<Date | undefined>(new Date());
-  const [prItems, setPRItems] = useState<Omit<Item, "lokasi">[]>([]);
+  const [prItems, setPRItems] = useState<PRItem[]>([]);
   const [mrIncluded, setMrIncluded] = useState<string[]>([]);
 
   // Pencarian master part
@@ -119,6 +119,7 @@ export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
         part_name: item.part_name,
         satuan: item.satuan,
         qty: item.qty,
+        kode_mr: item.kode_mr,
       })),
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
@@ -128,17 +129,6 @@ export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
       const res = await createPR(data);
       if (res) {
         toast.success("Purchase Request berhasil dibuat.");
-        mrIncluded.forEach(async (kode) => {
-          try {
-            await updateMRProgress(kode);
-          } catch (error) {
-            if (error instanceof Error) {
-              toast.error(`Gagal memperbarui MR ${kode}: ${error.message}`);
-            } else {
-              toast.error("Terjadi kesalahan saat memperbarui MR.");
-            }
-          }
-        });
         setMrIncluded([]);
         setRefresh((prev) => !prev);
         setPRItems([]);
@@ -164,11 +154,12 @@ export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
       return;
     }
 
-    const newItem: Omit<Item, "lokasi"> = {
+    const newItem: PRItem = {
       part_name: part.part_name,
       part_number: part.part_number,
       satuan: part.satuan,
       qty: qty,
+      kode_mr: selectedMr.kode,
     };
 
     setPRItems((prevItems) => [...prevItems, newItem]);
@@ -378,6 +369,9 @@ export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
                 Satuan
               </TableHead>
               <TableHead className="font-semibold text-center">Qty</TableHead>
+              <TableHead className="font-semibold text-center">
+                Berdasarkan MR
+              </TableHead>
               <TableHead className="font-semibold text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -392,6 +386,7 @@ export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
                   <TableCell>{item.qty}</TableCell>
+                  <TableCell>{item.kode_mr}</TableCell>
                   <TableCell>
                     <Button
                       type="button"

@@ -3,14 +3,7 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { createMR, generateKodeMR } from "@/services/material-request";
-import type {
-  Item,
-  MasterPart,
-  MR,
-  Stock,
-  UserComplete,
-  UserDb,
-} from "@/types";
+import type { Item, MasterPart, MR, UserComplete, UserDb } from "@/types";
 import { DatePicker } from "../date-picker";
 import {
   Select,
@@ -34,7 +27,7 @@ import { Button } from "../ui/button";
 import { serverTimestamp } from "firebase/firestore";
 import { LokasiList } from "@/types/enum";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CheckIcon, ChevronsUpDownIcon, Info } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -45,25 +38,17 @@ import {
 } from "../ui/command";
 import { cn } from "@/lib/utils";
 import { getMasterParts } from "@/services/master-part";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import type { Step } from "../stepper";
 
 interface CreateMRFormProps {
   user: UserComplete | UserDb;
   setRefresh: Dispatch<SetStateAction<boolean>>;
-  stocks: Stock[];
 }
 
-export default function CreateMRForm({
-  user,
-  setRefresh,
-  stocks = [],
-}: CreateMRFormProps) {
+export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
   const [kodeMR, setKodeMR] = useState<string>("Loading...");
   const [duedate, setDueDate] = useState<Date | undefined>();
   const [tanggalMR, setTanggalMR] = useState<Date | undefined>(new Date());
   const [mrItems, setMRItems] = useState<Item[]>([]);
-  const [needPR, setNeedPR] = useState<boolean>(false);
 
   // Pencarian master part
   const [open, setOpen] = useState<boolean>(false);
@@ -89,24 +74,6 @@ export default function CreateMRForm({
 
     fetchMasterParts();
   }, []);
-
-  useEffect(() => {
-    let detectStock = false;
-
-    mrItems.forEach((item) => {
-      const stockData = stocks.find(
-        (stock) =>
-          stock.part_number === item.part_number && stock.lokasi === item.lokasi
-      );
-      if (stockData) {
-        if (stockData.qty < item.qty) {
-          detectStock = true;
-        }
-      }
-    });
-
-    setNeedPR(detectStock);
-  }, [mrItems]);
 
   // Fetch kode MR
   async function fetchKodeMR() {
@@ -163,66 +130,6 @@ export default function CreateMRForm({
       return;
     }
 
-    let progress: Step[] = [];
-    let needPR = false;
-    // Template progress butuh PR
-    if (needPR) {
-      needPR = true;
-      progress = [
-        {
-          title: "Pembuatan Material Request",
-          description: "Material Request sudah dibuat.",
-          status: "completed",
-        },
-        {
-          title: "Purchase Request",
-          description:
-            "Barang yang diminta tidak tersedia di gudang, butuh Purchase Request.",
-          status: "active",
-        },
-        {
-          title: "Purchase Order",
-          description: "Barang akan dipesan setelah PR disetujui.",
-          status: "active",
-        },
-        {
-          title: "Receive Item",
-          description:
-            "Penerimaan barang dilakukan setelah PO diterbitkan dan barang sudah sampai.",
-          status: "active",
-        },
-        {
-          title: "Delivery",
-          description: "Barang akan dikirim ke lokasi yang membutuhkan.",
-          status: "active",
-        },
-        {
-          title: "Selesai",
-          description: "Material Request selesai.",
-          status: "active",
-        },
-      ];
-    } else {
-      // Template progress langsung Delivery
-      progress = [
-        {
-          title: "Pembuatan Material Request",
-          description: "Material Request sudah dibuat.",
-          status: "completed",
-        },
-        {
-          title: "Delivery",
-          description: "Barang akan dikirim ke lokasi yang membutuhkan.",
-          status: "active",
-        },
-        {
-          title: "Selesai",
-          description: "Material Request selesai.",
-          status: "active",
-        },
-      ];
-    }
-
     const data: MR = {
       kode: kodeMR,
       tanggal_mr: tanggalMR.toLocaleDateString("id-ID"),
@@ -232,8 +139,6 @@ export default function CreateMRForm({
       status: status,
       barang: mrItems,
       priority: priority,
-      need_pr: needPR,
-      progress: progress,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp(),
     };
@@ -259,8 +164,8 @@ export default function CreateMRForm({
     }
   }
 
-  function handleAddItem(part: MasterPart, qty: number, lokasi: string) {
-    if (!part || !qty || qty <= 0 || !lokasi) {
+  function handleAddItem(part: MasterPart, qty: number) {
+    if (!part || !qty || qty <= 0) {
       toast.error(
         "Mohon lengkapi semua detail item dan pastikan kuantitas valid."
       );
@@ -271,7 +176,6 @@ export default function CreateMRForm({
       part_name: part.part_name,
       part_number: part.part_number,
       satuan: part.satuan,
-      lokasi,
       qty: qty,
     };
 
@@ -443,7 +347,6 @@ export default function CreateMRForm({
         <AddItemMRDialog
           selectedPart={selectedPart}
           onAddItem={handleAddItem}
-          stocks={stocks}
           triggerButton={
             <Button
               className="col-span-12 md:col-span-4"
@@ -472,9 +375,6 @@ export default function CreateMRForm({
               <TableHead className="font-semibold text-center">
                 Satuan
               </TableHead>
-              <TableHead className="font-semibold text-center">
-                Lokasi
-              </TableHead>
               <TableHead className="font-semibold text-center">Qty</TableHead>
               <TableHead className="font-semibold text-center">Aksi</TableHead>
             </TableRow>
@@ -489,7 +389,6 @@ export default function CreateMRForm({
                   </TableCell>
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
-                  <TableCell>{item.lokasi}</TableCell>
                   <TableCell>{item.qty}</TableCell>
                   <TableCell>
                     <Button
@@ -516,20 +415,6 @@ export default function CreateMRForm({
           </TableBody>
         </Table>
       </div>
-
-      {needPR && (
-        <div className="col-span-12">
-          <Alert variant={"default"} className="text-start">
-            <Info />
-            <AlertTitle>Perhatian</AlertTitle>
-            <AlertDescription>
-              Material Request ini memuat item dengan stok yang kurang dari
-              gudang pilihan. Dibutuhkan PR dan PO sebelum lanjut ke proses
-              delivery.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
     </form>
   );
 }

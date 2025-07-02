@@ -62,6 +62,7 @@ export async function createMR(
     // check mr with same kode
     const q = query(MRCollection, where("kode", "==", newMRData.kode));
     const existingSnap = await getDocs(q);
+
     if (!existingSnap.empty) {
       throw new Error(
         `MR dengan kode ${newMRData.kode} sudah ada, ganti dengan yang lain.`
@@ -75,6 +76,7 @@ export async function createMR(
       updated_at: timestamp,
     };
     await addDoc(MRCollection, mrToAdd);
+
     return true;
   } catch (error) {
     console.error("Error creating MR:", error);

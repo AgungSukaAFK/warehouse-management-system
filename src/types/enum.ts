@@ -35,4 +35,18 @@ export type LogCategory =
   | "Receive Item"
   | "Delivery";
 
+export const DeliveryStatus = ["pending", "on delivery", "completed"];
+
+export const DeliveryEkspedisi = [
+  "JNE",
+  "TIKI",
+  "POS Indonesia",
+  "J&T Express",
+  "SiCepat",
+  "Gojek",
+  "Grab",
+  "Hand Carry",
+  "Lainnya",
+  "Belum ditentukan",
+];
 export const PagingSize = 25;

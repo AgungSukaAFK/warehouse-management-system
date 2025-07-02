@@ -5,7 +5,6 @@ import App from "./App.tsx";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Login from "./views/login/index.tsx";
 import Dashboard from "./views/dashboard/index.tsx";
-import Delivery from "./views/delivery/index.tsx";
 import Dokumentasi from "./views/dokumentasi/index.tsx";
 import MaterialRequest from "./views/material-request/index.tsx";
 import PurchaseOrder from "./views/purchase-order/index.tsx";
@@ -23,6 +22,7 @@ import PendingApprovalPage from "./views/unassigned/index.tsx";
 import ForgetPassword from "./views/forget-password/index.tsx";
 import { MaterialRequestDetail } from "./views/material-request/[kode]/index.tsx";
 import { PurchaseRequestDetail } from "./views/purchase-request/[kode]/index.tsx";
+import DeliveryPage from "./views/delivery/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -50,7 +50,7 @@ createRoot(document.getElementById("root")!).render(
 
         <Route path="/dashboard" element={<Dashboard />} />
 
-        <Route path="/delivery" element={<Delivery />} />
+        <Route path="/delivery" element={<DeliveryPage />} />
 
         <Route path="/barang-dan-stok" element={<BarangDanStok />} />
 

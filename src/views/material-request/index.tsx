@@ -6,7 +6,7 @@ import SectionContainer, {
 import WithSidebar from "@/components/layout/WithSidebar";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/services/auth";
-import type { MR, Stock, UserComplete } from "@/types";
+import type { MR, UserComplete } from "@/types";
 import { ClipboardPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -32,7 +32,6 @@ import {
 import { EditMRDialog } from "@/components/dialog/edit-mr";
 import { formatTanggal } from "@/lib/utils";
 import { PagingSize } from "@/types/enum";
-import { getAllStocks } from "@/services/stock";
 
 export default function MaterialRequest() {
   const [user, setUser] = useState<UserComplete | null>(null);
@@ -40,7 +39,6 @@ export default function MaterialRequest() {
   const [filteredMrs, setFilteredMrs] = useState<MR[]>([]);
   const [mrToShow, setMrToShow] = useState<MR[]>([]);
   const [refresh, setRefresh] = useState<boolean>(false);
-  const [stocks, setStocks] = useState<Stock[]>([]);
 
   // Filtering
   const [tanggalMr, setTanggalMr] = useState<Date>();
@@ -73,24 +71,6 @@ export default function MaterialRequest() {
 
     fetchUserDataAndMRs();
   }, [refresh]);
-
-  useEffect(() => {
-    async function fetchStockData() {
-      try {
-        const stockResult = await getAllStocks();
-        setStocks(stockResult);
-      } catch (error) {
-        if (error instanceof Error) {
-          toast.error(`Gagal mengambil data: ${error.message}`);
-        } else {
-          toast.error("Gagal mengambil data stock.");
-        }
-        setUser(null);
-      }
-    }
-
-    fetchStockData();
-  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -302,7 +282,7 @@ export default function MaterialRequest() {
                   <TableHead className="p-2">No</TableHead>
                   <TableHead className="p-2">Kode</TableHead>
                   <TableHead className="p-2">Tanggal MR</TableHead>
-                  <TableHead className="p-2">Tanggal Estimasi</TableHead>
+                  <TableHead className="p-2">Due Date</TableHead>
                   <TableHead className="p-2">Lokasi</TableHead>
                   <TableHead className="p-2">PIC</TableHead>
                   <TableHead className="p-2">Status</TableHead>
@@ -381,11 +361,7 @@ export default function MaterialRequest() {
           <SectionHeader>Tambah MR Baru</SectionHeader>
           <SectionBody className="grid grid-cols-12 gap-2">
             <div className="col-span-12 border border-border rounded-sm p-2 text-center">
-              <CreateMRForm
-                stocks={stocks}
-                user={user}
-                setRefresh={setRefresh}
-              />
+              <CreateMRForm user={user} setRefresh={setRefresh} />
             </div>
           </SectionBody>
           <SectionFooter>

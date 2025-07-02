@@ -27,3 +27,4 @@ export const MRCollection = collection(db, "material_requests");
 export const PRCollection = collection(db, "purchase_requests");
 export const MasterPartCollection = collection(db, "master_parts");
 export const StockCollection = collection(db, "stocks");
+export const DeliveryCollection = collection(db, "deliveries");

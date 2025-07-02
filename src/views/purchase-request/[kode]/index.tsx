@@ -164,6 +164,7 @@ export function PurchaseRequestDetail() {
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
                     <TableHead>Jumlah</TableHead>
+                    <TableHead>Berdasarkan MR</TableHead>
                     {/* <TableHead>Aksi</TableHead> */}
                   </TableRow>
                 </TableHeader>
@@ -178,6 +179,7 @@ export function PurchaseRequestDetail() {
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
                         <TableCell>{item.qty}</TableCell>
+                        <TableCell>{item.kode_mr}</TableCell>
                       </TableRow>
                     ))
                   ) : (

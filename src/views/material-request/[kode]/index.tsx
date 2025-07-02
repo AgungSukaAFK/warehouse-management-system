@@ -5,7 +5,7 @@ import SectionContainer, {
   SectionHeader,
 } from "@/components/content-container";
 import WithSidebar from "@/components/layout/WithSidebar";
-import type { MR, Stock } from "@/types"; // Pastikan path ini benar
+import type { MR } from "@/types"; // Pastikan path ini benar
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner"; // Import toast for user feedback
@@ -23,15 +23,12 @@ import { formatTanggal } from "@/lib/utils";
 import { parse } from "date-fns";
 import { getMrByKode } from "@/services/material-request";
 import { EditMRDialog } from "@/components/dialog/edit-mr";
-import Stepper from "@/components/stepper";
-import { getAllStocks } from "@/services/stock";
 
 export function MaterialRequestDetail() {
   const { kode } = useParams<{ kode: string }>();
   const [mr, setMr] = useState<MR | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refresh, setRefresh] = useState<boolean>(false);
-  const [stocks, setStocks] = useState<Stock[]>([]);
 
   useEffect(() => {
     async function fetchMrDetail() {
@@ -64,26 +61,6 @@ export function MaterialRequestDetail() {
       }
     }
 
-    async function fetchStocks() {
-      try {
-        setIsLoading(true);
-        const res = await getAllStocks();
-        if (res) {
-          setStocks(res);
-        }
-      } catch (error) {
-        console.error("Gagal mengambil data stok:", error);
-        if (error instanceof Error) {
-          toast.error(`Gagal mengambil data stok: ${error.message}`);
-        } else {
-          toast.error("Terjadi kesalahan saat mengambil data stok.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchStocks();
     fetchMrDetail();
   }, [kode, refresh]);
 
@@ -199,14 +176,6 @@ export function MaterialRequestDetail() {
         </SectionFooter>
       </SectionContainer>
 
-      {/* Progress tracker */}
-      <SectionContainer>
-        <SectionHeader>Progress Material Request</SectionHeader>
-        <SectionBody>
-          <Stepper steps={mr.progress} />
-        </SectionBody>
-      </SectionContainer>
-
       <SectionContainer span={12}>
         <SectionHeader>Detail Barang</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-6">
@@ -221,8 +190,6 @@ export function MaterialRequestDetail() {
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
                     <TableHead>Jumlah</TableHead>
-                    <TableHead>Ambil dari Gudang</TableHead>
-                    <TableHead>Stock di Gudang</TableHead>
                     {/* <TableHead>Aksi</TableHead> */}
                   </TableRow>
                 </TableHeader>
@@ -237,14 +204,6 @@ export function MaterialRequestDetail() {
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
                         <TableCell>{item.qty}</TableCell>
-                        <TableCell>{item.lokasi}</TableCell>
-                        <TableCell>
-                          {
-                            stocks.find(
-                              (i) => i.part_number === item.part_number
-                            )?.qty
-                          }
-                        </TableCell>
                         {/* <TableCell className="flex gap-2 items-center">
                           <Button
                             variant="outline"

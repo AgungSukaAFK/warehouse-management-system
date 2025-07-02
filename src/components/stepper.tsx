@@ -50,6 +50,19 @@ export default function Stepper({ steps }: StepperProps) {
                         <a href="/purchase-order">Ke halaman PO</a>
                       </Button>
                     )}
+
+                  {/* Delivery */}
+                  {steps[index - 1].status === "completed" &&
+                    step.title === "Delivery" && (
+                      <Button
+                        className="mt-2"
+                        variant={"outline"}
+                        size={"sm"}
+                        asChild
+                      >
+                        <a href="/delivery">Ke halaman Delivery</a>
+                      </Button>
+                    )}
                 </div>
               </div>
             </div>
