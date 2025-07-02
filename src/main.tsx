@@ -22,6 +22,7 @@ import VerifyEmailPage from "./views/verify-email/index.tsx";
 import PendingApprovalPage from "./views/unassigned/index.tsx";
 import ForgetPassword from "./views/forget-password/index.tsx";
 import { MaterialRequestDetail } from "./views/material-request/[kode]/index.tsx";
+import { PurchaseRequestDetail } from "./views/purchase-request/[kode]/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -65,6 +66,11 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/purchase-order" element={<PurchaseOrder />} />
 
         <Route path="/purchase-request" element={<PurchaseRequest />} />
+
+        <Route
+          path="/purchase-request/:kode"
+          element={<PurchaseRequestDetail />}
+        />
 
         <Route path="/receive-item" element={<ReceiveItem />} />
 

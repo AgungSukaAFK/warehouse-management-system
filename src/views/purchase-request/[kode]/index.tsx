@@ -5,7 +5,7 @@ import SectionContainer, {
   SectionHeader,
 } from "@/components/content-container";
 import WithSidebar from "@/components/layout/WithSidebar";
-import type { MR, Stock } from "@/types"; // Pastikan path ini benar
+import type { PR } from "@/types"; // Pastikan path ini benar
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner"; // Import toast for user feedback
@@ -17,37 +17,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Label } from "@/components/ui/label"; // Import Label
-import { Timestamp } from "firebase/firestore";
+import { Label } from "@/components/ui/label";
 import { formatTanggal } from "@/lib/utils";
-import { parse } from "date-fns";
-import { getMrByKode } from "@/services/material-request";
-import { EditMRDialog } from "@/components/dialog/edit-mr";
-import Stepper from "@/components/stepper";
-import { getAllStocks } from "@/services/stock";
+import { getPrByKode } from "@/services/purchase-request";
 
-export function MaterialRequestDetail() {
+export function PurchaseRequestDetail() {
   const { kode } = useParams<{ kode: string }>();
-  const [mr, setMr] = useState<MR | null>(null);
+  const [pr, setPr] = useState<PR | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refresh, setRefresh] = useState<boolean>(false);
-  const [stocks, setStocks] = useState<Stock[]>([]);
 
   useEffect(() => {
     async function fetchMrDetail() {
       if (!kode) {
-        toast.error("Kode Material Request tidak ditemukan di URL.");
+        toast.error("Kode Purchase Request tidak ditemukan di URL.");
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
       try {
-        const res = await getMrByKode(kode);
+        const res = await getPrByKode(kode);
+        console.log(res);
         if (res) {
-          setMr(res);
+          setPr(res);
         } else {
-          toast.error(`Material Request dengan kode ${kode} tidak ditemukan.`);
-          setMr(null);
+          toast.error(`Purchase Request dengan kode ${kode} tidak ditemukan.`);
+          setPr(null);
         }
       } catch (error) {
         console.error("Gagal mengambil detail MR:", error);
@@ -58,40 +52,19 @@ export function MaterialRequestDetail() {
             "Terjadi kesalahan saat mengambil detail Material Request."
           );
         }
-        setMr(null);
+        setPr(null);
       } finally {
         setIsLoading(false);
       }
     }
-
-    async function fetchStocks() {
-      try {
-        setIsLoading(true);
-        const res = await getAllStocks();
-        if (res) {
-          setStocks(res);
-        }
-      } catch (error) {
-        console.error("Gagal mengambil data stok:", error);
-        if (error instanceof Error) {
-          toast.error(`Gagal mengambil data stok: ${error.message}`);
-        } else {
-          toast.error("Terjadi kesalahan saat mengambil data stok.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchStocks();
     fetchMrDetail();
-  }, [kode, refresh]);
+  }, [kode]);
 
   if (isLoading) {
     return (
       <WithSidebar>
         <SectionContainer span={12}>
-          <SectionHeader>Memuat Detail Material Request...</SectionHeader>
+          <SectionHeader>Memuat Detail Purchase Request...</SectionHeader>
           <SectionBody className="grid grid-cols-12 gap-2">
             <div className="col-span-12 flex items-center justify-center border border-dashed border-border rounded-sm p-8 text-muted-foreground text-lg">
               Memuat data...
@@ -102,16 +75,14 @@ export function MaterialRequestDetail() {
     );
   }
 
-  async function handleEditMR() {}
-
-  if (!mr) {
+  if (!pr) {
     return (
       <WithSidebar>
         <SectionContainer span={12}>
-          <SectionHeader>Material Request Tidak Ditemukan</SectionHeader>
+          <SectionHeader>Purchase Request Tidak Ditemukan</SectionHeader>
           <SectionBody className="grid grid-cols-12 gap-2">
             <div className="col-span-12 flex items-center justify-center border border-dashed border-border rounded-sm p-8 text-muted-foreground text-lg">
-              MR dengan kode "{kode}" tidak ditemukan.
+              PR dengan kode "{kode}" tidak ditemukan.
             </div>
           </SectionBody>
           <SectionFooter>
@@ -126,9 +97,9 @@ export function MaterialRequestDetail() {
 
   return (
     <WithSidebar>
-      {/* Detail MR */}
+      {/* Detail PR */}
       <SectionContainer span={12}>
-        <SectionHeader>Detail Material Request: {mr.kode}</SectionHeader>
+        <SectionHeader>Detail Purchase Request: {pr.kode}</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-6">
           {/* Informasi Umum MR */}
           <div className="col-span-12 space-y-4">
@@ -137,48 +108,30 @@ export function MaterialRequestDetail() {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm text-muted-foreground">Kode MR</Label>
-                <p className="font-medium text-base">{mr.kode}</p>
+                <Label className="text-sm text-muted-foreground">Kode PR</Label>
+                <p className="font-medium text-base">{pr.kode}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">PIC</Label>
-                <p className="font-medium text-base">{mr.pic}</p>
+                <p className="font-medium text-base">{pr.pic}</p>
               </div>
               <div>
-                <Label className="text-sm text-muted-foreground">Lokasi</Label>
-                <p className="font-medium text-base">{mr.lokasi}</p>
+                <Label className="text-sm text-muted-foreground">
+                  Lokasi pembuat PR
+                </Label>
+                <p className="font-medium text-base">{pr.lokasi}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Status</Label>
-                <p className="font-medium text-base">{mr.status}</p>
+                <p className="font-medium text-base">{pr.status}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">
-                  Tanggal MR
+                  Tanggal PR
                 </Label>
                 {/* Pastikan mr.tanggal_mr adalah Timestamp sebelum memanggil toDate() */}
                 <p className="font-medium text-base">
-                  {formatTanggal(
-                    parse(mr.tanggal_mr, "d/M/yyyy", new Date()).getTime()
-                  )}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">
-                  Prioritas
-                </Label>
-                {/* Pastikan mr.tanggal_estimasi adalah Timestamp sebelum memanggil toDate() */}
-                <p className="font-medium text-base">{mr.priority}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">
-                  Due date
-                </Label>
-                {/* Pastikan mr.tanggal_estimasi adalah Timestamp sebelum memanggil toDate() */}
-                <p className="font-medium text-base">
-                  {formatTanggal(
-                    parse(mr.due_date, "d/M/yyyy", new Date()).getTime()
-                  )}
+                  {formatTanggal(pr.created_at)}
                 </p>
               </div>
               <div>
@@ -186,29 +139,19 @@ export function MaterialRequestDetail() {
                   Diperbarui Pada
                 </Label>
                 <p className="font-medium text-base">
-                  {mr.updated_at instanceof Timestamp
-                    ? formatTanggal(mr.updated_at.toDate().getTime())
-                    : "N/A"}
+                  {formatTanggal(pr.updated_at)}
                 </p>
               </div>
             </div>
           </div>
         </SectionBody>
         <SectionFooter>
-          <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} />
+          {/* <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} /> */}
         </SectionFooter>
       </SectionContainer>
 
-      {/* Progress tracker */}
-      <SectionContainer>
-        <SectionHeader>Progress Material Request</SectionHeader>
-        <SectionBody>
-          <Stepper steps={mr.progress} />
-        </SectionBody>
-      </SectionContainer>
-
       <SectionContainer span={12}>
-        <SectionHeader>Detail Barang</SectionHeader>
+        <SectionHeader>Barang dalam PR ini</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-6">
           {/* Daftar Barang */}
           <div className="col-span-12 space-y-4">
@@ -221,14 +164,12 @@ export function MaterialRequestDetail() {
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
                     <TableHead>Jumlah</TableHead>
-                    <TableHead>Ambil dari Gudang</TableHead>
-                    <TableHead>Stock di Gudang</TableHead>
                     {/* <TableHead>Aksi</TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mr.barang && mr.barang.length > 0 ? (
-                    mr.barang.map((item, index) => (
+                  {pr.order_item && pr.order_item.length > 0 ? (
+                    pr.order_item.map((item, index) => (
                       <TableRow key={index} className="[&>td]:border">
                         <TableCell className="w-[50px] text-center">
                           {index + 1}
@@ -237,34 +178,6 @@ export function MaterialRequestDetail() {
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
                         <TableCell>{item.qty}</TableCell>
-                        <TableCell>{item.lokasi}</TableCell>
-                        <TableCell>
-                          {
-                            stocks.find(
-                              (i) => i.part_number === item.part_number
-                            )?.qty
-                          }
-                        </TableCell>
-                        {/* <TableCell className="flex gap-2 items-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              toast.info(`Edit item: ${item.part_number}`);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              toast.error(`Hapus item: ${item.part_number}`);
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </TableCell> */}
                       </TableRow>
                     ))
                   ) : (

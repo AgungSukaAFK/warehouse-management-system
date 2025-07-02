@@ -1,6 +1,13 @@
 import { StockCollection } from "@/lib/firebase";
 import type { Stock } from "@/types";
-import { doc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDocs,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 
 export async function getAllStocks(): Promise<Stock[]> {
   try {
@@ -11,6 +18,30 @@ export async function getAllStocks(): Promise<Stock[]> {
     })) as Stock[];
   } catch (error) {
     console.error("Error fetching all stocks:", error);
+    throw error;
+  }
+}
+
+// ambil stock berdasarkan part_number dan lokasi
+export async function getStockByPartAndLocation(
+  part_number: string,
+  lokasi: string
+): Promise<Stock | null> {
+  try {
+    const q = query(
+      StockCollection,
+      where("part_number", "==", part_number),
+      where("lokasi", "==", lokasi)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as Stock;
+  } catch (error) {
+    console.error(
+      `Error fetching stock for part ${part_number} at location ${lokasi}:`,
+      error
+    );
     throw error;
   }
 }

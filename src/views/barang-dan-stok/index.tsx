@@ -99,6 +99,7 @@ export default function BarangDanStok() {
     <WithSidebar>
       {/* Data  */}
       <DataStokBarangSection
+        setRefresh={setRefresh}
         stocks={stocks}
         lokasiUser={user ? user.lokasi : ""}
       />
@@ -310,11 +311,11 @@ function DataMasterPartSection({ masterParts }: { masterParts: MasterPart[] }) {
 function DataStokBarangSection({
   stocks,
   lokasiUser,
-  setRefresh = () => {},
+  setRefresh,
 }: {
   stocks: Stock[];
   lokasiUser: string;
-  setRefresh?: Dispatch<SetStateAction<boolean>>;
+  setRefresh: Dispatch<SetStateAction<boolean>>;
 }) {
   const [filteredStock, setFilteredStock] = useState<Stock[]>([]);
   const [tableStocks, setTableStocks] = useState<Stock[]>([]);
@@ -406,10 +407,7 @@ function DataStokBarangSection({
         header: "Aksi",
         accessorKey: "aksi",
         cell: (_: any, row: Stock) => (
-          <EditStockDialog
-            refresh={() => setRefresh((prev) => !prev)}
-            stock={row}
-          />
+          <EditStockDialog refresh={setRefresh} stock={row} />
         ),
       },
     ];

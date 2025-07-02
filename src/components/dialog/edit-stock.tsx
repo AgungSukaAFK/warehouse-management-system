@@ -11,7 +11,7 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import type { MR, Stock } from "@/types";
+import type { Stock } from "@/types";
 import { toast } from "sonner";
 import type { Dispatch, SetStateAction } from "react";
 import { updateStock } from "@/services/stock";
@@ -23,9 +23,6 @@ interface MyDialogProps {
 }
 
 export function EditStockDialog({ stock, refresh }: MyDialogProps) {
-  console.log("EditStockDialog", stock);
-  console.log("EditStockDialog", refresh);
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);

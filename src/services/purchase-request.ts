@@ -5,3 +5,99 @@
  * 3. Get all PR : All
  * 4. Get PR by id : All
  */
+
+import { MRCollection, PRCollection } from "@/lib/firebase";
+import type { MR, PR } from "@/types";
+import {
+  addDoc,
+  getDocs,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+
+export async function getAllPr(): Promise<PR[]> {
+  try {
+    const q = query(PRCollection, orderBy("kode", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as PR[];
+  } catch (error) {
+    console.error("Error fetching all PR:", error);
+    throw error;
+  }
+}
+
+export async function getPrByKode(kode: string): Promise<PR | null> {
+  try {
+    const q = query(PRCollection, where("kode", "==", kode));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as PR;
+  } catch (error) {
+    console.error(`Error fetching PR by kode ${kode}:`, error);
+    throw error;
+  }
+}
+
+export async function createPR(
+  newPRData: Omit<PR, "id" | "created_at" | "updated_at">
+): Promise<boolean> {
+  try {
+    // check pr with same kode
+    const q = query(PRCollection, where("kode", "==", newPRData.kode));
+    const existingSnap = await getDocs(q);
+    if (!existingSnap.empty) {
+      throw new Error(
+        `MR PR kode ${newPRData.kode} sudah ada, ganti dengan yang lain.`
+      );
+    }
+
+    const timestamp = Timestamp.now();
+    const prToAdd = {
+      ...newPRData,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    await addDoc(PRCollection, prToAdd);
+    return true;
+  } catch (error) {
+    console.error("Error creating PR:", error);
+    throw error;
+  }
+}
+
+export async function updateMRProgress(kode: string) {
+  try {
+    const q = query(MRCollection, where("kode", "==", kode));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      throw new Error(`MR dengan kode ${kode} tidak ditemukan.`);
+    }
+
+    const mrDoc = snapshot.docs[0];
+    const mrData = mrDoc.data();
+
+    // Update progress logic here
+    const prStep = (mrData as MR).progress.find(
+      (step) => step.title === "Purchase Request"
+    );
+    if (prStep) {
+      prStep.status = "completed";
+    }
+    mrData.updated_at = Timestamp.now();
+
+    // Update the document in Firestore
+    await updateDoc(mrDoc.ref, mrData);
+
+    return true;
+  } catch (error) {
+    console.error(`Error updating PR progress for kode ${kode}:`, error);
+    throw error;
+  }
+}

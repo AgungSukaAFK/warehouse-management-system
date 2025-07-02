@@ -2,15 +2,8 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
-import { createMR, generateKodeMR } from "@/services/material-request";
-import type {
-  Item,
-  MasterPart,
-  MR,
-  Stock,
-  UserComplete,
-  UserDb,
-} from "@/types";
+import { getAllMr } from "@/services/material-request";
+import type { Item, MasterPart, MR, PR, UserComplete, UserDb } from "@/types";
 import { DatePicker } from "../date-picker";
 import {
   Select,
@@ -29,12 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { AddItemMRDialog } from "../dialog/add-item-mr";
 import { Button } from "../ui/button";
-import { serverTimestamp } from "firebase/firestore";
 import { LokasiList } from "@/types/enum";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CheckIcon, ChevronsUpDownIcon, Info } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -45,31 +36,29 @@ import {
 } from "../ui/command";
 import { cn } from "@/lib/utils";
 import { getMasterParts } from "@/services/master-part";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import type { Step } from "../stepper";
+import { AddItemPRDialog } from "../dialog/add-item-pr";
+import { createPR, updateMRProgress } from "@/services/purchase-request";
+import { Timestamp } from "firebase/firestore";
 
 interface CreateMRFormProps {
   user: UserComplete | UserDb;
   setRefresh: Dispatch<SetStateAction<boolean>>;
-  stocks: Stock[];
 }
 
-export default function CreateMRForm({
-  user,
-  setRefresh,
-  stocks = [],
-}: CreateMRFormProps) {
-  const [kodeMR, setKodeMR] = useState<string>("Loading...");
-  const [duedate, setDueDate] = useState<Date | undefined>();
-  const [tanggalMR, setTanggalMR] = useState<Date | undefined>(new Date());
-  const [mrItems, setMRItems] = useState<Item[]>([]);
-  const [needPR, setNeedPR] = useState<boolean>(false);
+export default function CreatePRForm({ user, setRefresh }: CreateMRFormProps) {
+  const [tanggalPR, setTanggalPR] = useState<Date | undefined>(new Date());
+  const [prItems, setPRItems] = useState<Omit<Item, "lokasi">[]>([]);
+  const [mrIncluded, setMrIncluded] = useState<string[]>([]);
 
   // Pencarian master part
   const [open, setOpen] = useState<boolean>(false);
+  const [open2, setOpen2] = useState<boolean>(false);
   const [masterParts, setMasterParts] = useState<MasterPart[]>([]);
   const [filteredParts, setFilteredParts] = useState<MasterPart[]>([]);
+  const [mr, setMR] = useState<MR[]>([]);
+  const [filteredMr, setFilteredMR] = useState<MR[]>([]);
   const [selectedPart, setSelectedPart] = useState<MasterPart>();
+  const [selectedMr, setSelectedMr] = useState<MR>();
 
   // Fetch master parts
   useEffect(() => {
@@ -90,237 +79,135 @@ export default function CreateMRForm({
     fetchMasterParts();
   }, []);
 
+  // Fetch Mr
   useEffect(() => {
-    let detectStock = false;
-
-    mrItems.forEach((item) => {
-      const stockData = stocks.find(
-        (stock) =>
-          stock.part_number === item.part_number && stock.lokasi === item.lokasi
-      );
-      if (stockData) {
-        if (stockData.qty < item.qty) {
-          detectStock = true;
+    async function fetchMR() {
+      try {
+        const mr = await getAllMr();
+        setMR(mr);
+        setFilteredMR(mr);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(`Gagal mengambil data MR: ${error.message}`);
+        } else {
+          toast.error("Terjadi kesalahan saat mengambil data MR.");
         }
       }
-    });
-
-    setNeedPR(detectStock);
-  }, [mrItems]);
-
-  // Fetch kode MR
-  async function fetchKodeMR() {
-    toast.info("Menghasilkan Kode MR baru...");
-    try {
-      const kode = await generateKodeMR(user);
-      setKodeMR(kode);
-      toast.success("Kode MR sudah terbaru.");
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`Gagal menghasilkan Kode MR: ${error.message}`);
-      } else {
-        toast.error("Terjadi kesalahan saat menghasilkan Kode MR.");
-      }
     }
-  }
 
-  useEffect(() => {
-    fetchKodeMR();
+    fetchMR();
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const lokasi = user.lokasi;
-    const status = "open";
-    const priority = formData.get("priority") as string;
-
-    if (
-      !kodeMR ||
-      !duedate ||
-      !tanggalMR ||
-      !lokasi ||
-      !status ||
-      mrItems.length === 0 ||
-      !kodeMR ||
-      !user ||
-      !priority
-    ) {
-      toast.warning("Data belum lengkap.");
-      console.log(
-        "Data belum lengkap:",
-        kodeMR,
-        duedate,
-        tanggalMR,
-        lokasi,
-        status,
-        mrItems.length,
-        kodeMR,
-        user,
-        priority
-      );
+    if (prItems.length === 0) {
+      toast.error("Belum ada item untuk PR ini.");
       return;
     }
 
-    let progress: Step[] = [];
-    let needPR = false;
-    // Template progress butuh PR
-    if (needPR) {
-      needPR = true;
-      progress = [
-        {
-          title: "Pembuatan Material Request",
-          description: "Material Request sudah dibuat.",
-          status: "completed",
-        },
-        {
-          title: "Purchase Request",
-          description:
-            "Barang yang diminta tidak tersedia di gudang, butuh Purchase Request.",
-          status: "active",
-        },
-        {
-          title: "Purchase Order",
-          description: "Barang akan dipesan setelah PR disetujui.",
-          status: "active",
-        },
-        {
-          title: "Receive Item",
-          description:
-            "Penerimaan barang dilakukan setelah PO diterbitkan dan barang sudah sampai.",
-          status: "active",
-        },
-        {
-          title: "Delivery",
-          description: "Barang akan dikirim ke lokasi yang membutuhkan.",
-          status: "active",
-        },
-        {
-          title: "Selesai",
-          description: "Material Request selesai.",
-          status: "active",
-        },
-      ];
-    } else {
-      // Template progress langsung Delivery
-      progress = [
-        {
-          title: "Pembuatan Material Request",
-          description: "Material Request sudah dibuat.",
-          status: "completed",
-        },
-        {
-          title: "Delivery",
-          description: "Barang akan dikirim ke lokasi yang membutuhkan.",
-          status: "active",
-        },
-        {
-          title: "Selesai",
-          description: "Material Request selesai.",
-          status: "active",
-        },
-      ];
-    }
+    const formData = new FormData(event.currentTarget);
+    const kodePR = formData.get("kodePR") as string;
 
-    const data: MR = {
-      kode: kodeMR,
-      tanggal_mr: tanggalMR.toLocaleDateString("id-ID"),
-      due_date: duedate.toLocaleDateString("id-ID"),
-      lokasi: lokasi,
+    const data: PR = {
+      kode: kodePR,
+      status: "open",
+      lokasi: user.lokasi,
       pic: user.nama,
-      status: status,
-      barang: mrItems,
-      priority: priority,
-      need_pr: needPR,
-      progress: progress,
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
+      mrs: mrIncluded,
+      order_item: prItems.map((item) => ({
+        part_number: item.part_number,
+        part_name: item.part_name,
+        satuan: item.satuan,
+        qty: item.qty,
+      })),
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
     };
 
     try {
-      const res = await createMR(data);
+      const res = await createPR(data);
       if (res) {
-        toast.success("Material Request berhasil dibuat.");
+        toast.success("Purchase Request berhasil dibuat.");
+        mrIncluded.forEach(async (kode) => {
+          try {
+            await updateMRProgress(kode);
+          } catch (error) {
+            if (error instanceof Error) {
+              toast.error(`Gagal memperbarui MR ${kode}: ${error.message}`);
+            } else {
+              toast.error("Terjadi kesalahan saat memperbarui MR.");
+            }
+          }
+        });
+        setMrIncluded([]);
         setRefresh((prev) => !prev);
-        setMRItems([]);
-        setTanggalMR(new Date());
-        setDueDate(undefined);
+        setPRItems([]);
+        setTanggalPR(new Date());
       } else {
-        toast.error("Gagal membuat Material Request. Silakan coba lagi.");
+        toast.error("Gagal membuat Purchase Request. Silakan coba lagi.");
       }
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(`Gagal membuat MR: ${error.message}`);
+        toast.error(`Gagal membuat PR: ${error.message}`);
       } else {
-        toast.error("Terjadi kesalahan saat membuat MR.");
+        toast.error("Terjadi kesalahan saat membuat PR.");
       }
       return;
     }
   }
 
-  function handleAddItem(part: MasterPart, qty: number, lokasi: string) {
-    if (!part || !qty || qty <= 0 || !lokasi) {
+  function handleAddItem(part: MasterPart, qty: number) {
+    if (!part || !qty || qty <= 0 || !selectedMr) {
       toast.error(
         "Mohon lengkapi semua detail item dan pastikan kuantitas valid."
       );
       return;
     }
 
-    const newItem: Item = {
+    const newItem: Omit<Item, "lokasi"> = {
       part_name: part.part_name,
       part_number: part.part_number,
       satuan: part.satuan,
-      lokasi,
       qty: qty,
     };
 
-    setMRItems((prevItems) => [...prevItems, newItem]);
+    setPRItems((prevItems) => [...prevItems, newItem]);
+    setMrIncluded((prev) => [...prev, selectedMr.kode]);
+    setSelectedPart(undefined);
+    setSelectedMr(undefined);
+    setOpen(false);
+    setOpen2(false);
     toast.success("Item berhasil ditambahkan ke daftar.");
   }
 
   function handleRemoveItem(index: number) {
-    setMRItems((prevItems) => prevItems.filter((_, i) => i !== index));
+    setPRItems((prevItems) => prevItems.filter((_, i) => i !== index));
     toast.success("Item berhasil dihapus dari daftar.");
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      id="create-mr-form"
+      id="create-pr-form"
       className="grid grid-cols-12 gap-4"
     >
-      <div className="flex flex-col col-span-12 lg:col-span-4 gap-4">
-        {/* Kode MR */}
+      <div className="flex flex-col col-span-12 lg:col-span-6 gap-4">
+        {/* Kode PR */}
         <div className="flex flex-col gap-2">
-          <Label>Kode MR</Label>
-          <div className="flex items-center gap-4">
-            <Input
-              name="numberMR"
-              disabled
-              value={kodeMR}
-              className="lg:tracking-wider"
-            />
-            <Button
-              variant={"outline"}
-              type="button"
-              onClick={async () => await fetchKodeMR()}
-            >
-              Refresh
-            </Button>
-          </div>
+          <Label htmlFor="kodePR">Kode PR</Label>
+          <Input name="kodePR" className="lg:tracking-wider" required />
         </div>
 
-        {/* Tanggal MR */}
+        {/* Tanggal PR */}
         <div className="flex flex-col gap-2">
-          <Label>Tanggal MR</Label>
+          <Label>Tanggal PR</Label>
           <div className="flex items-center">
-            <DatePicker value={tanggalMR} onChange={setTanggalMR} />
+            <DatePicker value={tanggalPR} onChange={setTanggalPR} />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col col-span-12 lg:col-span-4 gap-4">
+      <div className="flex flex-col col-span-12 lg:col-span-6 gap-4">
         {/* PIC */}
         <div className="flex flex-col gap-2">
           <Label>Person in Charge</Label>
@@ -329,21 +216,11 @@ export default function CreateMRForm({
           </div>
         </div>
 
-        {/* Tanggal duedate */}
-        <div className="flex flex-col gap-2">
-          <Label>Tanggal due date</Label>
-          <div className="flex items-center">
-            <DatePicker value={duedate} onChange={setDueDate} />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col col-span-12 lg:col-span-4 gap-4">
         {/* Lokasi */}
         <div className="flex flex-col gap-2">
-          <Label>Lokasi</Label>
+          <Label htmlFor="lokasi">Lokasi</Label>
           <div className="flex items-center">
-            <Select required name="lokasi" disabled>
+            <Select required name="lokasi" value={user.lokasi} disabled>
               <SelectTrigger className="w-full" name="lokasi" id="lokasi">
                 <SelectValue
                   placeholder={user.lokasi}
@@ -363,37 +240,18 @@ export default function CreateMRForm({
             </Select>
           </div>
         </div>
-
-        {/* Status */}
-        <div className="flex flex-col gap-2">
-          <Label>Prioritas</Label>
-          <div className="flex items-center">
-            <Select required name="priority">
-              <SelectTrigger className="w-full" name="status" id="status">
-                <SelectValue placeholder={"Pilih status MR"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Prioritas</SelectLabel>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
 
-      {/* Tambah Item MR */}
+      {/* Tambah Item PR */}
       <div className="col-span-12 grid grid-cols-12 gap-4">
-        {/* Combobox */}
+        {/* Combobox Item */}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className={cn("col-span-12 lg:col-span-8 justify-between")}
+              className={cn("col-span-12 lg:col-span-4 justify-between")}
             >
               {selectedPart
                 ? masterParts.find(
@@ -440,15 +298,61 @@ export default function CreateMRForm({
           </PopoverContent>
         </Popover>
 
-        <AddItemMRDialog
+        {/* Combobox Referensi MR */}
+        <Popover open={open2} onOpenChange={setOpen2}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open2}
+              className={cn("col-span-12 lg:col-span-4 justify-between")}
+            >
+              {selectedMr
+                ? mr.find((mr: MR) => mr.kode === selectedMr?.kode)?.kode
+                : "Cari kode mr..."}
+              <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
+            <Command>
+              <CommandInput placeholder="Cari kode mr..." />
+              <CommandList>
+                <CommandEmpty>Tidak ada.</CommandEmpty>
+                <CommandGroup>
+                  {filteredMr?.map((m) => (
+                    <CommandItem
+                      key={m.kode}
+                      value={m.kode}
+                      onSelect={(currentValue) => {
+                        setSelectedMr(mr.find((m) => m.kode === currentValue));
+                        setOpen2(false);
+                      }}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedMr?.kode === m.kode
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {`${m.kode}`}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <AddItemPRDialog
           selectedPart={selectedPart}
           onAddItem={handleAddItem}
-          stocks={stocks}
           triggerButton={
             <Button
               className="col-span-12 md:col-span-4"
               variant={"outline"}
-              disabled={!selectedPart}
+              disabled={!selectedPart || !selectedMr}
             >
               Tambah Barang
             </Button>
@@ -456,6 +360,7 @@ export default function CreateMRForm({
         />
       </div>
 
+      {/* Item yang masuk PR */}
       <div className="col-span-12">
         <Table>
           <TableHeader>
@@ -472,16 +377,13 @@ export default function CreateMRForm({
               <TableHead className="font-semibold text-center">
                 Satuan
               </TableHead>
-              <TableHead className="font-semibold text-center">
-                Lokasi
-              </TableHead>
               <TableHead className="font-semibold text-center">Qty</TableHead>
               <TableHead className="font-semibold text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mrItems.length > 0 ? (
-              mrItems?.map((item, index) => (
+            {prItems.length > 0 ? (
+              prItems?.map((item, index) => (
                 <TableRow key={index} className="border [&>*]:border">
                   <TableCell className="w-[50px]">{index + 1}</TableCell>
                   <TableCell className="text-start">
@@ -489,7 +391,6 @@ export default function CreateMRForm({
                   </TableCell>
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
-                  <TableCell>{item.lokasi}</TableCell>
                   <TableCell>{item.qty}</TableCell>
                   <TableCell>
                     <Button
@@ -516,20 +417,6 @@ export default function CreateMRForm({
           </TableBody>
         </Table>
       </div>
-
-      {needPR && (
-        <div className="col-span-12">
-          <Alert variant={"default"} className="text-start">
-            <Info />
-            <AlertTitle>Perhatian</AlertTitle>
-            <AlertDescription>
-              Material Request ini memuat item dengan stok yang kurang dari
-              gudang pilihan. Dibutuhkan PR dan PO sebelum lanjut ke proses
-              delivery.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
     </form>
   );
 }
