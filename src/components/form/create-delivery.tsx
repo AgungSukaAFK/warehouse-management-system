@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { getAllMr } from "@/services/material-request";
-import type { Delivery, MR, UserComplete, UserDb } from "@/types";
+import type { Delivery, MR, Stock, UserComplete, UserDb } from "@/types";
 import {
   Select,
   SelectContent,
@@ -36,21 +36,26 @@ import {
 import { cn } from "@/lib/utils";
 import { Timestamp } from "firebase/firestore";
 import { createDelivery } from "@/services/delivery";
+import { getAllStocks } from "@/services/stock";
 
 interface CreateDeliveryFormProps {
   user: UserComplete | UserDb;
   setRefresh: Dispatch<SetStateAction<boolean>>;
+  setEnableCreate: Dispatch<SetStateAction<boolean>>;
 }
 
 export default function CreateDeliveryForm({
   user,
   setRefresh,
+  setEnableCreate,
 }: CreateDeliveryFormProps) {
   const [key, setKey] = useState(+new Date());
   const [open, setOpen] = useState<boolean>(false);
   const [mr, setMR] = useState<MR[]>([]);
   const [filteredMr, setFilteredMR] = useState<MR[]>([]);
   const [selectedMr, setSelectedMr] = useState<MR>();
+  const [selectedFrom, setSelectedFrom] = useState<string>("");
+  const [stocks, setStocks] = useState<Stock[]>([]);
 
   // Fetch Mr
   useEffect(() => {
@@ -71,6 +76,43 @@ export default function CreateDeliveryForm({
     fetchMR();
   }, []);
 
+  // Fetch Stocks
+  useEffect(() => {
+    async function fetchStock() {
+      try {
+        const res = await getAllStocks();
+        setStocks(res);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(`Gagal mengambil data Stocks: ${error.message}`);
+        } else {
+          toast.error("Terjadi kesalahan saat mengambil data Stocks.");
+        }
+      }
+    }
+
+    fetchStock();
+  }, []);
+
+  // Cek apakah mr valid untuk melakukan delivery
+  useEffect(() => {
+    if (!selectedMr || !stocks || !selectedFrom) {
+      setEnableCreate(false);
+      return;
+    }
+
+    const isValid = selectedMr.barang.every((item) => {
+      const stock = stocks.find(
+        (s) => s.part_number === item.part_number && selectedFrom === s.lokasi
+      );
+      return stock && stock.qty >= item.qty;
+    });
+    setEnableCreate(isValid);
+    if (!isValid) {
+      toast.error("Stok tidak mencukupi untuk melakukan delivery.");
+    }
+  }, [selectedMr, stocks, selectedFrom, setEnableCreate]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -87,13 +129,10 @@ export default function CreateDeliveryForm({
     const kode_it = formData.get("kode_it") as string;
     const ekspedisi = formData.get("ekspedisi") as string;
     const dari = formData.get("dari") as string;
-    const tujuan = formData.get("tujuan") as string;
+    const tujuan = selectedMr.lokasi;
     const status = formData.get("status") as string;
     const koli = formData.get("koli") as string;
     const resi = formData.get("resi") as string;
-
-    console.log(dari);
-    console.log(tujuan);
 
     if (dari === "" || tujuan === "") {
       toast.error("Lokasi pengirim dan tujuan tidak boleh kosong.");
@@ -120,13 +159,14 @@ export default function CreateDeliveryForm({
     };
 
     try {
-      const res = await createDelivery(data);
+      const res = await createDelivery(data, selectedMr.barang);
       if (res) {
         toast.success("Delivery berhasil dibuat.");
         setRefresh((prev) => !prev);
         form.reset();
         setSelectedMr(undefined);
         setKey(+new Date());
+        setSelectedFrom("");
       } else {
         toast.error("Gagal membuat Purchase Request. Silakan coba lagi.");
       }
@@ -239,7 +279,12 @@ export default function CreateDeliveryForm({
         <div className="flex flex-col gap-2">
           <Label htmlFor="dari">Dari Gudang</Label>
           <div className="flex items-center">
-            <Select key={key} required name="dari">
+            <Select
+              key={key}
+              required
+              name="dari"
+              onValueChange={(val) => setSelectedFrom(val)}
+            >
               <SelectTrigger className="w-full" name="dari" id="dari">
                 <SelectValue placeholder="Pilih lokasi pengirim" />
               </SelectTrigger>
@@ -267,7 +312,13 @@ export default function CreateDeliveryForm({
         <div className="flex flex-col gap-2">
           <Label htmlFor="tujuan">Ke Gudang</Label>
           <div className="flex items-center">
-            <Select key={key} required name="tujuan">
+            <Select
+              key={key}
+              required
+              name="tujuan"
+              disabled
+              value={selectedMr?.lokasi}
+            >
               <SelectTrigger className="w-full" name="tujuan" id="tujuan">
                 <SelectValue placeholder="Pilih lokasi tujuan" />
               </SelectTrigger>
@@ -315,12 +366,11 @@ export default function CreateDeliveryForm({
 
         {/* Jumlah Koli */}
         <div className="flex flex-col gap-2">
-          <Label htmlFor="koli">Jumlah Koli</Label>
+          <Label htmlFor="koli">Jumlah Koli (opsional)</Label>
           <Input
             name="koli"
             type="number"
             min={0}
-            required
             className="lg:tracking-wider"
           />
         </div>
@@ -344,6 +394,9 @@ export default function CreateDeliveryForm({
                 Satuan
               </TableHead>
               <TableHead className="font-semibold text-center">Qty</TableHead>
+              <TableHead className="font-semibold text-center">
+                Stock {selectedFrom}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -357,6 +410,15 @@ export default function CreateDeliveryForm({
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
                   <TableCell>{item.qty}</TableCell>
+                  <TableCell>
+                    {
+                      stocks.find(
+                        (i) =>
+                          i.part_number === item.part_number &&
+                          selectedFrom === i.lokasi
+                      )?.qty
+                    }
+                  </TableCell>
                 </TableRow>
               ))
             ) : (

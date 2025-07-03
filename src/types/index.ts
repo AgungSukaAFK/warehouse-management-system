@@ -72,10 +72,12 @@ export interface PR {
 }
 
 export interface PO {
+  id?: string;
   kode: string;
   kode_pr: string;
   tanggal_estimasi: string;
   status: string;
+  pic: string;
   created_at: Timestamp;
   updated_at: Timestamp;
 }

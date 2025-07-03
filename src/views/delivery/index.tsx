@@ -34,6 +34,7 @@ export default function DeliveryPage() {
   const [refresh, setRefresh] = useState<boolean>(false);
   const [user, setUser] = useState<UserComplete | null>(null);
   const [deliveris, setDeliveries] = useState<Delivery[]>([]);
+  const [enableCreate, setEnableCreate] = useState<boolean>(false);
 
   // Filtering
   const [filteredDeliveries, setFilteredDeliveris] = useState<Delivery[]>([]);
@@ -201,7 +202,7 @@ export default function DeliveryPage() {
                       <TableCell className="p-2 border">
                         <Button size="sm" variant="outline" asChild>
                           <Link
-                            to={`/purchase-request/${encodeURIComponent(
+                            to={`/delivery/${encodeURIComponent(
                               deliv.kode_it
                             )}`}
                           >
@@ -245,7 +246,11 @@ export default function DeliveryPage() {
           <SectionHeader>Tambah Delivery Baru</SectionHeader>
           <SectionBody className="grid grid-cols-12 gap-2">
             <div className="col-span-12 border border-border rounded-sm p-2 text-center">
-              <CreateDeliveryForm setRefresh={setRefresh} user={user} />
+              <CreateDeliveryForm
+                setRefresh={setRefresh}
+                user={user}
+                setEnableCreate={setEnableCreate}
+              />
             </div>
           </SectionBody>
           <SectionFooter>
@@ -253,6 +258,7 @@ export default function DeliveryPage() {
               className="w-full flex gap-4"
               type="submit"
               form="create-delivery-form"
+              disabled={!enableCreate}
             >
               Tambah <Plus />
             </Button>

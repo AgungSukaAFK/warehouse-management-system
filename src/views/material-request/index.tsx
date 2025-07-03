@@ -278,40 +278,45 @@ export default function MaterialRequest() {
           <div className="col-span-12 border rounded-sm overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border [&>*]:border">
-                  <TableHead className="p-2">No</TableHead>
-                  <TableHead className="p-2">Kode</TableHead>
-                  <TableHead className="p-2">Tanggal MR</TableHead>
-                  <TableHead className="p-2">Due Date</TableHead>
-                  <TableHead className="p-2">Lokasi</TableHead>
-                  <TableHead className="p-2">PIC</TableHead>
-                  <TableHead className="p-2">Status</TableHead>
-                  <TableHead className="p-2">Jumlah Barang</TableHead>
-                  <TableHead className="p-2">Aksi</TableHead>
+                <TableRow>
+                  <TableHead className="border p-2">No</TableHead>
+                  <TableHead className="border p-2">Kode</TableHead>
+                  <TableHead className="border p-2">Tanggal MR</TableHead>
+                  <TableHead className="border p-2">Due Date</TableHead>
+                  <TableHead className="border p-2">Lokasi</TableHead>
+                  <TableHead className="border p-2">PIC</TableHead>
+                  <TableHead className="border p-2">Status</TableHead>
+                  <TableHead className="border p-2">Jumlah Barang</TableHead>
+                  <TableHead className="border p-2">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {mrToShow.length > 0 ? (
                   mrToShow.map((mr, index) => (
-                    <TableRow key={mr.id} className="border [&>*]:border">
-                      <TableCell className="p-2">
+                    <TableRow key={mr.id}>
+                      <TableCell className="border p-2">
                         {PagingSize * (currentPage - 1) + (index + 1)}
                       </TableCell>
-                      <TableCell className="p-2">{mr.kode}</TableCell>
-                      <TableCell className="p-2">
+                      <TableCell className="border p-2">{mr.kode}</TableCell>
+                      <TableCell className="border p-2">
                         {formatTanggal(mr.tanggal_mr)}
                       </TableCell>
-                      <TableCell className="p-2">
+                      <TableCell className="border p-2">
                         {formatTanggal(mr.due_date)}
                       </TableCell>
-                      <TableCell className="p-2">{mr.lokasi}</TableCell>
-                      <TableCell className="p-2">{mr.pic}</TableCell>
-                      <TableCell className="p-2">{mr.status}</TableCell>
-                      <TableCell className="p-2">
+                      <TableCell className="border p-2">{mr.lokasi}</TableCell>
+                      <TableCell className="border p-2">{mr.pic}</TableCell>
+                      <TableCell className="border p-2">{mr.status}</TableCell>
+                      <TableCell className="border p-2">
                         {mr.barang?.length || 0}
                       </TableCell>
-                      <TableCell className="p-2 flex gap-2 items-center">
-                        <Button size="sm" variant="outline" asChild>
+                      <TableCell className="border p-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mr-2"
+                          asChild
+                        >
                           <Link
                             to={`/material-request/${encodeURIComponent(
                               mr.kode

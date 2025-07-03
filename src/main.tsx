@@ -23,6 +23,8 @@ import ForgetPassword from "./views/forget-password/index.tsx";
 import { MaterialRequestDetail } from "./views/material-request/[kode]/index.tsx";
 import { PurchaseRequestDetail } from "./views/purchase-request/[kode]/index.tsx";
 import DeliveryPage from "./views/delivery/index.tsx";
+import { DeliveryDetail } from "./views/delivery/[kode]/index.tsx";
+import { PurchaseOrderDetail } from "./views/purchase-order/[kode]/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -52,6 +54,8 @@ createRoot(document.getElementById("root")!).render(
 
         <Route path="/delivery" element={<DeliveryPage />} />
 
+        <Route path="/delivery/:kode" element={<DeliveryDetail />} />
+
         <Route path="/barang-dan-stok" element={<BarangDanStok />} />
 
         <Route path="/dokumentasi" element={<Dokumentasi />} />
@@ -64,6 +68,8 @@ createRoot(document.getElementById("root")!).render(
         />
 
         <Route path="/purchase-order" element={<PurchaseOrder />} />
+
+        <Route path="/purchase-order/:kode" element={<PurchaseOrderDetail />} />
 
         <Route path="/purchase-request" element={<PurchaseRequest />} />
 
