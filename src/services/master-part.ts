@@ -47,7 +47,7 @@ export async function createMasterPart(data: MasterPart): Promise<boolean> {
       part_name,
       satuan,
       lokasi: lokasi.nama,
-      max: 100,
+      max: 0,
       min: 0,
       qty: 0,
       created_at: Timestamp.now(),

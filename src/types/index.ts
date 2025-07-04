@@ -36,11 +36,10 @@ export interface MR {
   lokasi: string;
   pic: string;
   status: string;
-  priority: string;
   created_at: Timestamp | FieldValue;
   updated_at: Timestamp | FieldValue;
 
-  barang: Item[];
+  barang: MRItem[];
 }
 
 export interface Item {
@@ -48,6 +47,15 @@ export interface Item {
   part_name: string;
   satuan: string;
   qty: number;
+}
+
+export interface MRItem {
+  part_number: string;
+  part_name: string;
+  satuan: string;
+  priority: string;
+  qty: number;
+  qty_delivered: number;
 }
 
 export interface PRItem {
@@ -78,6 +86,7 @@ export interface PO {
   tanggal_estimasi: string;
   status: string;
   pic: string;
+  keterangan?: string;
   created_at: Timestamp;
   updated_at: Timestamp;
 }

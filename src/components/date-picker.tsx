@@ -27,9 +27,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
             id="date"
             className="w-full justify-between font-normal"
           >
-            {value
-              ? formatTanggal(value.toLocaleDateString("id-ID"))
-              : "Pilih tanggal"}
+            {value ? formatTanggal(value.toISOString()) : "Pilih tanggal"}
             <ChevronDownIcon />
           </Button>
         </PopoverTrigger>

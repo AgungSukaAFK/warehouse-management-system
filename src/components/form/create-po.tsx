@@ -36,6 +36,7 @@ import { Timestamp } from "firebase/firestore";
 import { getAllPr } from "@/services/purchase-request";
 import { createPO } from "@/services/purchase-order";
 import { DatePicker } from "../date-picker";
+import { Textarea } from "../ui/textarea";
 
 interface CreatePOFormProps {
   user: UserComplete | UserDb;
@@ -87,6 +88,7 @@ export default function CreatePOForm({ user, setRefresh }: CreatePOFormProps) {
     const kode_pr = selectedPR.kode;
     const pic = user.nama;
     const status = formData.get("status") as string;
+    const keterangan = formData.get("keterangan") as string;
 
     const data: PO = {
       kode,
@@ -94,6 +96,7 @@ export default function CreatePOForm({ user, setRefresh }: CreatePOFormProps) {
       tanggal_estimasi: estimasi.toISOString(),
       pic,
       status,
+      keterangan,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
     };
@@ -210,6 +213,18 @@ export default function CreatePOForm({ user, setRefresh }: CreatePOFormProps) {
           <div className="flex items-center">
             <DatePicker value={estimasi} onChange={setEstimasi} />
           </div>
+        </div>
+      </div>
+
+      {/* Keterangan */}
+      <div className="col-span-12 flex flex-col gap-2">
+        <Label htmlFor="keterangan">Keterangan</Label>
+        <div className="flex items-center">
+          <Textarea
+            placeholder="Masukkan keterangan..."
+            name="keterangan"
+            id="keterangan"
+          />
         </div>
       </div>
 

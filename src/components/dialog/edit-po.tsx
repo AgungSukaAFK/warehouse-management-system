@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Textarea } from "../ui/textarea";
 
 interface MyDialogProps {
   po: PO;
@@ -40,12 +41,14 @@ export function EditPODialog({ po, refresh }: MyDialogProps) {
     }
 
     const status = formData.get("status") as string;
+    const keterangan = formData.get("keterangan") as string;
 
     const data: PO = {
       kode: po.kode,
       kode_pr: po.kode_pr,
       tanggal_estimasi: po.tanggal_estimasi,
       status,
+      keterangan,
       pic: po.pic,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
@@ -69,7 +72,7 @@ export function EditPODialog({ po, refresh }: MyDialogProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size={"sm"}>
-          Edit Status PO
+          Edit PO
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -82,7 +85,7 @@ export function EditPODialog({ po, refresh }: MyDialogProps) {
             {/* Status */}
             <div className="grid gap-3">
               <Label htmlFor="kode">Status PO</Label>
-              <Select required name="status">
+              <Select required name="status" defaultValue={po.status}>
                 <SelectTrigger className="w-full" name="status" id="status">
                   <SelectValue placeholder="Pilih status" />
                 </SelectTrigger>
@@ -94,6 +97,16 @@ export function EditPODialog({ po, refresh }: MyDialogProps) {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+            </div>
+            {/* Keterangan */}
+            <div className="grid gap-3">
+              <Label htmlFor="keterangan">Keterangan</Label>
+              <Textarea
+                id="keterangan"
+                name="keterangan"
+                placeholder="Masukkan keterangan..."
+                defaultValue={po.keterangan || ""}
+              />
             </div>
           </div>
         </form>

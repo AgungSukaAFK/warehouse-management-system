@@ -11,6 +11,7 @@ import type { Delivery, Item } from "@/types";
 import {
   addDoc,
   getDocs,
+  orderBy,
   query,
   Timestamp,
   updateDoc,
@@ -19,7 +20,9 @@ import {
 
 export async function getAllDelivery(): Promise<Delivery[]> {
   try {
-    const snapshots = await getDocs(DeliveryCollection);
+    const snapshots = await getDocs(
+      query(DeliveryCollection, orderBy("status", "desc"))
+    );
     return snapshots.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),

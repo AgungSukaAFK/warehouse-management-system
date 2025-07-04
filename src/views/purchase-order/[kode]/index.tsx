@@ -178,6 +178,14 @@ export function PurchaseOrderDetail() {
                   {formatTanggal(po.updated_at)}
                 </p>
               </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">
+                  Keterangan
+                </Label>
+                <p className="font-medium text-base">
+                  {po.keterangan || "Tidak ada keterangan."}
+                </p>
+              </div>
             </div>
           </div>
         </SectionBody>

@@ -14,16 +14,16 @@ export type Lokasi = {
 };
 
 export const LokasiList: Lokasi[] = [
-  { nama: "JAKARTA", kode: "JKT" },
-  { nama: "TANJUNG ENIM", kode: "ENIM" },
-  { nama: "BALIKPAPAN", kode: "BPN" },
-  { nama: "SITE BA", kode: "BA" },
-  { nama: "SITE TAL", kode: "TAL" },
-  { nama: "SITE MIP", kode: "MIP" },
-  { nama: "SITE MIFA", kode: "MIFA" },
-  { nama: "SITE BIB", kode: "BIB" },
-  { nama: "SITE AMI", kode: "AMI" },
-  { nama: "SITE TABANG", kode: "TAB" },
+  { nama: "JAKARTA", kode: "JKT" }, // jawa
+  { nama: "TANJUNG ENIM", kode: "ENIM" }, // sumatera
+  { nama: "BALIKPAPAN", kode: "BPN" }, // Kalimantan
+  { nama: "SITE BA", kode: "BA" }, // Sumatera
+  { nama: "SITE TAL", kode: "TAL" }, // Kalimantan
+  { nama: "SITE MIP", kode: "MIP" }, // Sumatera
+  { nama: "SITE MIFA", kode: "MIFA" }, // Sumatera
+  { nama: "SITE BIB", kode: "BIB" }, // Kalimantan
+  { nama: "SITE AMI", kode: "AMI" }, // Kalimantan
+  { nama: "SITE TABANG", kode: "TAB" }, // Tabang
   { nama: "unassigned", kode: "unassigned" },
 ];
 
