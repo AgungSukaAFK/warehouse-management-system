@@ -8,11 +8,19 @@ import WithSidebar from "@/components/layout/WithSidebar";
 import { MyPagination } from "@/components/my-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // <-- Impor
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // <-- Impor
 import {
   Table,
   TableBody,
@@ -33,14 +41,18 @@ import { toast } from "sonner";
 export default function DeliveryPage() {
   const [refresh, setRefresh] = useState<boolean>(false);
   const [user, setUser] = useState<UserComplete | null>(null);
-  const [deliveris, setDeliveries] = useState<Delivery[]>([]);
-  const [enableCreate, setEnableCreate] = useState<boolean>(false);
-
-  // Filtering
-  const [filteredDeliveries, setFilteredDeliveris] = useState<Delivery[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [filteredDeliveries, setFilteredDeliveries] = useState<Delivery[]>([]);
   const [deliveriesToShow, setDeliveriesToShow] = useState<Delivery[]>([]);
-  const [kode, setKode] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // --- State untuk Filtering ---
+  const [kodeIt, setKodeIt] = useState<string>("");
+  const [kodeMr, setKodeMr] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [dariGudang, setDariGudang] = useState<string>("");
+  const [keGudang, setKeGudang] = useState<string>("");
+  const [resi, setResi] = useState<string>("");
 
   useEffect(() => {
     async function fetchUser() {
@@ -51,49 +63,73 @@ export default function DeliveryPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchUserDataAndMRs() {
+    async function fetchAllDeliveries() {
       try {
-        const mrResult = await getAllDelivery();
-        setDeliveries(mrResult);
-        setFilteredDeliveris(mrResult);
-        setDeliveriesToShow(mrResult.slice(0, PagingSize));
+        const deliveryResult = await getAllDelivery();
+        setDeliveries(deliveryResult);
       } catch (error) {
-        if (error instanceof Error) {
-          toast.error(`Gagal mengambil data: ${error.message}`);
-        } else {
-          toast.error("Gagal mengambil data Delivery.");
-        }
-        setUser(null);
+        toast.error(
+          `Gagal mengambil data Delivery: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
     }
 
-    fetchUserDataAndMRs();
+    fetchAllDeliveries();
   }, [refresh]);
 
-  function filterDeliveries() {
-    let filtered = deliveris;
+  // --- useEffect untuk Filtering Otomatis ---
+  useEffect(() => {
+    let filtered = deliveries;
 
-    if (kode) {
-      filtered = filtered.filter((deliv) =>
-        deliv.kode_it.toLowerCase().includes(kode.toLowerCase())
+    if (kodeIt) {
+      filtered = filtered.filter((d) =>
+        d.kode_it.toLowerCase().includes(kodeIt.toLowerCase())
+      );
+    }
+    if (kodeMr) {
+      filtered = filtered.filter((d) =>
+        d.kode_mr.toLowerCase().includes(kodeMr.toLowerCase())
+      );
+    }
+    if (status) {
+      filtered = filtered.filter((d) => d.status === status);
+    }
+    if (dariGudang) {
+      filtered = filtered.filter((d) =>
+        d.dari_gudang.toLowerCase().includes(dariGudang.toLowerCase())
+      );
+    }
+    if (keGudang) {
+      filtered = filtered.filter((d) =>
+        d.ke_gudang.toLowerCase().includes(keGudang.toLowerCase())
+      );
+    }
+    if (resi) {
+      filtered = filtered.filter((d) =>
+        d.resi_pengiriman.toLowerCase().includes(resi.toLowerCase())
       );
     }
 
-    setFilteredDeliveris(filtered);
+    setFilteredDeliveries(filtered);
     setCurrentPage(1);
-    setDeliveriesToShow(filtered.slice(0, PagingSize));
-    if (filtered.length === 0) {
-      toast.info("Tidak ada Purchase Request yang sesuai dengan filter.");
-    } else {
-      toast.success("Filter berhasil diterapkan.");
-    }
-  }
+  }, [deliveries, kodeIt, kodeMr, status, dariGudang, keGudang, resi]);
+
+  // --- useEffect untuk Mengatur Paginasi ---
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * PagingSize;
+    const endIndex = startIndex + PagingSize;
+    setDeliveriesToShow(filteredDeliveries.slice(startIndex, endIndex));
+  }, [filteredDeliveries, currentPage]);
 
   function resetFilters() {
-    setKode("");
-    setFilteredDeliveris(deliveris);
-    setCurrentPage(1);
-    setDeliveriesToShow(deliveris.slice(0, PagingSize));
+    setKodeIt("");
+    setKodeMr("");
+    setStatus("");
+    setDariGudang("");
+    setKeGudang("");
+    setResi("");
     toast.success("Filter telah direset.");
   }
 
@@ -111,42 +147,92 @@ export default function DeliveryPage() {
 
   return (
     <WithSidebar>
-      {/* Data PR */}
+      {/* Data Delivery */}
       <SectionContainer span={12}>
         <SectionHeader>Daftar Delivery</SectionHeader>
         <SectionBody className="grid grid-cols-12 gap-2">
           {/* Filtering */}
           <div className="col-span-12 grid grid-cols-12 gap-4 items-end">
-            {/* Search by kode IT */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-5">
+            <div className="col-span-12 md:col-span-6 lg:col-span-7">
               <Input
-                placeholder="Cari berdasarkan kode IT"
-                value={kode}
-                onChange={(e) => setKode(e.target.value)}
+                id="search-kode-it"
+                placeholder="Ketik kode IT untuk memfilter..."
+                value={kodeIt}
+                onChange={(e) => setKodeIt(e.target.value)}
               />
             </div>
 
-            {/* Search button */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-2">
-              <Button className="w-full" onClick={filterDeliveries}>
-                Cari
-              </Button>
-            </div>
-
-            {/* Filter popover */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-3">
+            <div className="col-span-6 md:col-span-3 lg:col-span-3">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full">
                     Filter Tambahan
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 space-y-4"></PopoverContent>
+                <PopoverContent className="w-80 space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">
+                      Filter Lanjutan
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Saring data pengiriman.
+                    </p>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-kode-mr">Kode MR</Label>
+                      <Input
+                        id="filter-kode-mr"
+                        placeholder="Cari kode MR..."
+                        value={kodeMr}
+                        onChange={(e) => setKodeMr(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-resi">No. Resi Pengiriman</Label>
+                      <Input
+                        id="filter-resi"
+                        placeholder="Cari no. resi..."
+                        value={resi}
+                        onChange={(e) => setResi(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-status">Status</Label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pilih Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-dari-gudang">Dari Gudang</Label>
+                      <Input
+                        id="filter-dari-gudang"
+                        placeholder="Cari gudang asal..."
+                        value={dariGudang}
+                        onChange={(e) => setDariGudang(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-ke-gudang">Ke Gudang</Label>
+                      <Input
+                        id="filter-ke-gudang"
+                        placeholder="Cari gudang tujuan..."
+                        value={keGudang}
+                        onChange={(e) => setKeGudang(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
               </Popover>
             </div>
 
-            {/* Clear filter button */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-2">
+            <div className="col-span-6 md:col-span-3 lg:col-span-2">
               <Button
                 className="w-full"
                 variant={"destructive"}
@@ -215,10 +301,10 @@ export default function DeliveryPage() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="p-4 text-center text-muted-foreground"
                     >
-                      Tidak ada Material Request ditemukan.
+                      Tidak ada data pengiriman ditemukan.
                     </TableCell>
                   </TableRow>
                 )}
@@ -231,9 +317,7 @@ export default function DeliveryPage() {
           <MyPagination
             data={filteredDeliveries}
             triggerNext={nextPage}
-            triggerPageChange={(e) => {
-              pageChange(e);
-            }}
+            triggerPageChange={pageChange}
             triggerPrevious={previousPage}
             currentPage={currentPage}
           />
@@ -244,13 +328,9 @@ export default function DeliveryPage() {
       {user?.role === "warehouse" || user?.role === "purchasing" ? (
         <SectionContainer span={12}>
           <SectionHeader>Tambah Delivery Baru</SectionHeader>
-          <SectionBody className="grid grid-cols-12 gap-2">
+          <SectionBody>
             <div className="col-span-12 border border-border rounded-sm p-2 text-center">
-              <CreateDeliveryForm
-                setRefresh={setRefresh}
-                user={user}
-                setEnableCreate={setEnableCreate}
-              />
+              <CreateDeliveryForm setRefresh={setRefresh} user={user} />
             </div>
           </SectionBody>
           <SectionFooter>
@@ -258,7 +338,6 @@ export default function DeliveryPage() {
               className="w-full flex gap-4"
               type="submit"
               form="create-delivery-form"
-              disabled={!enableCreate}
             >
               Tambah <Plus />
             </Button>

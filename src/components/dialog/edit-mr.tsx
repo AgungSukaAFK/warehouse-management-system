@@ -36,7 +36,7 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const status = formData.get("status") as string;
-    const priority = formData.get("priority") as string;
+
     console.log(formData);
     if (!mr.id) {
       toast.error("MR tidak ditemukan");
@@ -46,12 +46,8 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
       toast.warning("Status tidak boleh kosong");
       return;
     }
-    if (!priority) {
-      toast.warning("Prioritas tidak boleh kosong");
-      return;
-    }
 
-    if (status === mr.status && priority === mr.priority) {
+    if (status === mr.status) {
       toast.warning("Tidak ada perubahan yang dilakukan");
       return;
     }
@@ -60,7 +56,6 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
     try {
       const res = await updateMR(mr.id, {
         status,
-        priority,
       });
       if (res) {
         toast.success("Data MR berhasil diupdate");
@@ -91,21 +86,6 @@ export function EditMRDialog({ mr, refresh }: MyDialogProps) {
             <div className="grid gap-3">
               <Label htmlFor="kode">Kode MR</Label>
               <Input id="kode" name="kode" defaultValue={mr.kode} disabled />
-            </div>
-            <div className="grid gap-3">
-              <Label htmlFor="priority">Prioritas</Label>
-              <Select name="priority" required>
-                <SelectTrigger className="w-full" name="priority" id="priority">
-                  <SelectValue placeholder={mr.priority} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Prioritas</SelectLabel>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
             </div>
             <div className="grid gap-3">
               <Label htmlFor="status">Status</Label>

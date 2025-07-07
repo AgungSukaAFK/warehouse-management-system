@@ -8,11 +8,19 @@ import WithSidebar from "@/components/layout/WithSidebar";
 import { MyPagination } from "@/components/my-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // <-- Impor
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // <-- Impor
 import {
   Table,
   TableBody,
@@ -33,13 +41,17 @@ import { toast } from "sonner";
 export default function PurchaseRequest() {
   const [refresh, setRefresh] = useState<boolean>(false);
   const [user, setUser] = useState<UserComplete | null>(null);
-  const [prs, SetPrs] = useState<PR[]>([]);
-
-  // Filtering
+  const [prs, setPrs] = useState<PR[]>([]);
   const [filteredPrs, setFilteredPrs] = useState<PR[]>([]);
   const [prToShow, setPrToShow] = useState<PR[]>([]);
-  const [kode, setKode] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // --- State untuk Filtering ---
+  const [kode, setKode] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [lokasi, setLokasi] = useState<string>("");
+  const [pic, setPic] = useState<string>("");
+  const [partNumber, setPartNumber] = useState<string>(""); // Filter tambahan
 
   useEffect(() => {
     async function fetchUser() {
@@ -50,26 +62,24 @@ export default function PurchaseRequest() {
   }, []);
 
   useEffect(() => {
-    async function fetchUserDataAndMRs() {
+    async function fetchAllPRs() {
       try {
-        const mrResult = await getAllPr();
-        SetPrs(mrResult);
-        setFilteredPrs(mrResult);
-        setPrToShow(mrResult.slice(0, PagingSize));
+        const prResult = await getAllPr();
+        setPrs(prResult);
       } catch (error) {
-        if (error instanceof Error) {
-          toast.error(`Gagal mengambil data: ${error.message}`);
-        } else {
-          toast.error("Gagal mengambil data PR.");
-        }
-        setUser(null);
+        toast.error(
+          `Gagal mengambil data PR: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
     }
 
-    fetchUserDataAndMRs();
+    fetchAllPRs();
   }, [refresh]);
 
-  function filterPrs() {
+  // --- useEffect untuk Filtering Otomatis ---
+  useEffect(() => {
     let filtered = prs;
 
     if (kode) {
@@ -77,25 +87,49 @@ export default function PurchaseRequest() {
         pr.kode.toLowerCase().includes(kode.toLowerCase())
       );
     }
+    if (status) {
+      filtered = filtered.filter((pr) => pr.status === status);
+    }
+    if (lokasi) {
+      filtered = filtered.filter((pr) =>
+        pr.lokasi.toLowerCase().includes(lokasi.toLowerCase())
+      );
+    }
+    if (pic) {
+      filtered = filtered.filter((pr) =>
+        pr.pic.toLowerCase().includes(pic.toLowerCase())
+      );
+    }
+    // Filter berdasarkan part number di dalam order_item
+    if (partNumber) {
+      filtered = filtered.filter((pr) =>
+        pr.order_item.some((item) =>
+          item.part_number.toLowerCase().includes(partNumber.toLowerCase())
+        )
+      );
+    }
 
     setFilteredPrs(filtered);
-    setCurrentPage(1); // Reset to first page after filtering
-    setPrToShow(filtered.slice(0, PagingSize));
-    if (filtered.length === 0) {
-      toast.info("Tidak ada Purchase Request yang sesuai dengan filter.");
-    } else {
-      toast.success("Filter berhasil diterapkan.");
-    }
-  }
+    setCurrentPage(1); // Reset ke halaman pertama setiap kali filter berubah
+  }, [prs, kode, status, lokasi, pic, partNumber]); // <-- Semua state filter jadi dependensi
+
+  // --- useEffect untuk Mengatur Paginasi ---
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * PagingSize;
+    const endIndex = startIndex + PagingSize;
+    setPrToShow(filteredPrs.slice(startIndex, endIndex));
+  }, [filteredPrs, currentPage]);
 
   function resetFilters() {
     setKode("");
-    setFilteredPrs(prs);
-    setCurrentPage(1);
-    setPrToShow(prs.slice(0, PagingSize));
+    setStatus("");
+    setLokasi("");
+    setPic("");
+    setPartNumber("");
     toast.success("Filter telah direset.");
   }
 
+  // Fungsi paginasi tidak perlu diubah
   function nextPage() {
     setCurrentPage((prev) => prev + 1);
   }
@@ -117,35 +151,79 @@ export default function PurchaseRequest() {
           {/* Filtering */}
           <div className="col-span-12 grid grid-cols-12 gap-4 items-end">
             {/* Search by kode */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-5">
+            <div className="col-span-12 md:col-span-6 lg:col-span-7">
               <Input
-                placeholder="Cari berdasarkan kode"
+                id="search-kode"
+                placeholder="Ketik kode PR untuk memfilter..."
                 value={kode}
                 onChange={(e) => setKode(e.target.value)}
               />
             </div>
 
-            {/* Search button */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-2">
-              <Button className="w-full" onClick={filterPrs}>
-                Cari
-              </Button>
-            </div>
-
             {/* Filter popover */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-3">
+            <div className="col-span-6 md:col-span-3 lg:col-span-3">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full">
                     Filter Tambahan
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 space-y-4"></PopoverContent>
+                <PopoverContent className="w-80 space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">
+                      Filter Lanjutan
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Saring data berdasarkan kriteria lain.
+                    </p>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-part-number">Nomor Part</Label>
+                      <Input
+                        id="filter-part-number"
+                        placeholder="Cari nomor part..."
+                        value={partNumber}
+                        onChange={(e) => setPartNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-status">Status</Label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pilih Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="close">Close</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-lokasi">Lokasi</Label>
+                      <Input
+                        id="filter-lokasi"
+                        placeholder="Cari lokasi..."
+                        value={lokasi}
+                        onChange={(e) => setLokasi(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="filter-pic">PIC</Label>
+                      <Input
+                        id="filter-pic"
+                        placeholder="Cari PIC..."
+                        value={pic}
+                        onChange={(e) => setPic(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
               </Popover>
             </div>
 
             {/* Clear filter button */}
-            <div className="col-span-12 md:col-span-4 lg:col-span-2">
+            <div className="col-span-6 md:col-span-3 lg:col-span-2">
               <Button
                 className="w-full"
                 variant={"destructive"}
@@ -169,20 +247,20 @@ export default function PurchaseRequest() {
               </TableHeader>
               <TableBody>
                 {prToShow.length > 0 ? (
-                  prToShow.map((mr, index) => (
-                    <TableRow key={mr.id}>
+                  prToShow.map((pr, index) => (
+                    <TableRow key={pr.id}>
                       <TableCell className="p-2 border">
                         {PagingSize * (currentPage - 1) + (index + 1)}
                       </TableCell>
-                      <TableCell className="p-2 border">{mr.kode}</TableCell>
-                      <TableCell className="p-2 border">{mr.status}</TableCell>
-                      <TableCell className="p-2 border">{mr.lokasi}</TableCell>
-                      <TableCell className="p-2 border">{mr.pic}</TableCell>
+                      <TableCell className="p-2 border">{pr.kode}</TableCell>
+                      <TableCell className="p-2 border">{pr.status}</TableCell>
+                      <TableCell className="p-2 border">{pr.lokasi}</TableCell>
+                      <TableCell className="p-2 border">{pr.pic}</TableCell>
                       <TableCell className="p-2 border">
                         <Button size="sm" variant="outline" asChild>
                           <Link
                             to={`/purchase-request/${encodeURIComponent(
-                              mr.kode
+                              pr.kode
                             )}`}
                           >
                             Detail
@@ -194,10 +272,10 @@ export default function PurchaseRequest() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={6} // Disesuaikan dengan jumlah kolom
                       className="p-4 text-center text-muted-foreground"
                     >
-                      Tidak ada Material Request ditemukan.
+                      Tidak ada Purchase Request ditemukan.
                     </TableCell>
                   </TableRow>
                 )}
@@ -210,20 +288,18 @@ export default function PurchaseRequest() {
           <MyPagination
             data={filteredPrs}
             triggerNext={nextPage}
-            triggerPageChange={(e) => {
-              pageChange(e);
-            }}
+            triggerPageChange={pageChange}
             triggerPrevious={previousPage}
             currentPage={currentPage}
           />
         </SectionFooter>
       </SectionContainer>
 
-      {/* Tambah */}
+      {/* Tambah (tidak ada perubahan) */}
       {user?.role === "warehouse" || user?.role === "purchasing" ? (
         <SectionContainer span={12}>
           <SectionHeader>Tambah PR Baru</SectionHeader>
-          <SectionBody className="grid grid-cols-12 gap-2">
+          <SectionBody>
             <div className="col-span-12 border border-border rounded-sm p-2 text-center">
               <CreatePRForm setRefresh={setRefresh} user={user} />
             </div>

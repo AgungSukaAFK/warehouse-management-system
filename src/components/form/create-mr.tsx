@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { createMR, generateKodeMR } from "@/services/material-request";
-import type { Item, MasterPart, MR, UserComplete, UserDb } from "@/types";
+import type { MasterPart, MR, MRItem, UserComplete, UserDb } from "@/types";
 import { DatePicker } from "../date-picker";
 import {
   Select,
@@ -48,7 +48,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
   const [kodeMR, setKodeMR] = useState<string>("Loading...");
   const [duedate, setDueDate] = useState<Date | undefined>();
   const [tanggalMR, setTanggalMR] = useState<Date | undefined>(new Date());
-  const [mrItems, setMRItems] = useState<Item[]>([]);
+  const [mrItems, setMRItems] = useState<MRItem[]>([]);
 
   // Pencarian master part
   const [open, setOpen] = useState<boolean>(false);
@@ -98,10 +98,9 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
     const lokasi = user.lokasi;
     const status = "open";
-    const priority = formData.get("priority") as string;
 
     if (
       !kodeMR ||
@@ -111,8 +110,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
       !status ||
       mrItems.length === 0 ||
       !kodeMR ||
-      !user ||
-      !priority
+      !user
     ) {
       toast.warning("Data belum lengkap.");
       console.log(
@@ -124,21 +122,19 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
         status,
         mrItems.length,
         kodeMR,
-        user,
-        priority
+        user
       );
       return;
     }
 
     const data: MR = {
       kode: kodeMR,
-      tanggal_mr: tanggalMR.toLocaleDateString("id-ID"),
-      due_date: duedate.toLocaleDateString("id-ID"),
+      tanggal_mr: tanggalMR.toISOString(),
+      due_date: duedate.toISOString(),
       lokasi: lokasi,
       pic: user.nama,
       status: status,
       barang: mrItems,
-      priority: priority,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp(),
     };
@@ -151,6 +147,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
         setMRItems([]);
         setTanggalMR(new Date());
         setDueDate(undefined);
+        form.reset();
       } else {
         toast.error("Gagal membuat Material Request. Silakan coba lagi.");
       }
@@ -164,7 +161,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
     }
   }
 
-  function handleAddItem(part: MasterPart, qty: number) {
+  function handleAddItem(part: MasterPart, qty: number, priority: string) {
     if (!part || !qty || qty <= 0) {
       toast.error(
         "Mohon lengkapi semua detail item dan pastikan kuantitas valid."
@@ -172,11 +169,18 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
       return;
     }
 
-    const newItem: Item = {
+    if (mrItems.some((item) => item.part_number === part.part_number)) {
+      toast.warning("Item dengan part number ini sudah ada di daftar.");
+      return;
+    }
+
+    const newItem: MRItem = {
       part_name: part.part_name,
       part_number: part.part_number,
       satuan: part.satuan,
       qty: qty,
+      priority,
+      qty_delivered: 0,
     };
 
     setMRItems((prevItems) => [...prevItems, newItem]);
@@ -219,7 +223,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
         <div className="flex flex-col gap-2">
           <Label>Tanggal MR</Label>
           <div className="flex items-center">
-            <DatePicker value={tanggalMR} onChange={setTanggalMR} />
+            <DatePicker disabled value={tanggalMR} onChange={setTanggalMR} />
           </div>
         </div>
       </div>
@@ -262,25 +266,6 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
                       {lokasi.nama}
                     </SelectItem>
                   ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="flex flex-col gap-2">
-          <Label>Prioritas</Label>
-          <div className="flex items-center">
-            <Select required name="priority">
-              <SelectTrigger className="w-full" name="status" id="status">
-                <SelectValue placeholder={"Pilih status MR"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Prioritas</SelectLabel>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -376,6 +361,9 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
                 Satuan
               </TableHead>
               <TableHead className="font-semibold text-center">Qty</TableHead>
+              <TableHead className="font-semibold text-center">
+                Prioritas
+              </TableHead>
               <TableHead className="font-semibold text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -390,6 +378,7 @@ export default function CreateMRForm({ user, setRefresh }: CreateMRFormProps) {
                   <TableCell className="text-start">{item.part_name}</TableCell>
                   <TableCell>{item.satuan}</TableCell>
                   <TableCell>{item.qty}</TableCell>
+                  <TableCell>{item.priority}</TableCell>
                   <TableCell>
                     <Button
                       type="button"

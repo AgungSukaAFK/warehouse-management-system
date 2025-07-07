@@ -13,9 +13,14 @@ import { formatTanggal } from "@/lib/utils";
 type DatePickerProps = {
   value?: Date;
   onChange?: Dispatch<Date | undefined>;
+  disabled?: boolean;
 };
 
-export function DatePicker({ value, onChange }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  disabled = false,
+}: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,6 +28,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            disabled={disabled}
             variant="outline"
             id="date"
             className="w-full justify-between font-normal"
@@ -33,6 +39,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
         </PopoverTrigger>
         <PopoverContent className="w-auto overflow-hidden p-0" align="start">
           <Calendar
+            disabled={disabled}
             mode="single"
             selected={value}
             captionLayout="dropdown"

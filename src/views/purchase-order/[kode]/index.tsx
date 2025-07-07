@@ -190,7 +190,9 @@ export function PurchaseOrderDetail() {
           </div>
         </SectionBody>
         <SectionFooter>
-          <EditPODialog po={po} refresh={setRefresh} />
+          {po.status !== "received" && (
+            <EditPODialog po={po} refresh={setRefresh} />
+          )}
         </SectionFooter>
       </SectionContainer>
 

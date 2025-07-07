@@ -13,7 +13,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import type { Delivery } from "@/types";
 import { toast } from "sonner";
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   Select,
   SelectContent,
@@ -33,21 +33,45 @@ interface MyDialogProps {
 }
 
 export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
+  const [statusAwal, setStatusAwal] = useState<string>("");
+
+  useEffect(() => {
+    setStatusAwal(delivery.status);
+  }, [delivery]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     const formData = new FormData(event.currentTarget);
     const status = formData.get("status") as string;
     const ekspedisi = formData.get("ekspedisi") as string;
     const resi_pengiriman = formData.get("resi_pengiriman") as string;
+    const jumlah_koli = formData.get("jumlah_koli") as string;
 
     if (!delivery.kode_it) {
       toast.error("Kode IT tidak ditemukan");
       return;
     }
+
+    if (status === "completed" && statusAwal !== "on delivery") {
+      toast.error(
+        "Status harus 'on delivery' sebelum diubah menjadi 'completed'"
+      );
+      return;
+    }
+
+    if (status === statusAwal) {
+      toast.error("Tidak ada perubahan status yang dilakukan");
+      return;
+    }
+
     const data: Partial<Delivery> = {
+      kode_mr: delivery.kode_mr,
       status,
       ekspedisi,
       resi_pengiriman,
+      items: delivery.items,
+      jumlah_koli: parseInt(jumlah_koli),
     };
     // Update MR
     try {
@@ -91,7 +115,11 @@ export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
             </div>
             <div className="grid gap-3">
               <Label htmlFor="ekspedisi">Ekspedisi yang digunakan</Label>
-              <Select name="ekspedisi" required>
+              <Select
+                name="ekspedisi"
+                defaultValue={delivery.ekspedisi}
+                required
+              >
                 <SelectTrigger
                   className="w-full"
                   name="ekspedisi"
@@ -119,6 +147,15 @@ export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
                 id="resi_pengiriman"
                 name="resi_pengiriman"
                 defaultValue={delivery.resi_pengiriman}
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="jumlah_koli">Jumlah Koli</Label>
+              <Input
+                id="jumlah_koli"
+                type="number"
+                name="jumlah_koli"
+                defaultValue={delivery.jumlah_koli}
               />
             </div>
             <div className="grid gap-3">

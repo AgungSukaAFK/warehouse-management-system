@@ -22,13 +22,11 @@ import { Timestamp } from "firebase/firestore";
 import { formatTanggal } from "@/lib/utils";
 import { parse } from "date-fns";
 import { getMrByKode } from "@/services/material-request";
-import { EditMRDialog } from "@/components/dialog/edit-mr";
 
 export function MaterialRequestDetail() {
   const { kode } = useParams<{ kode: string }>();
   const [mr, setMr] = useState<MR | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchMrDetail() {
@@ -62,7 +60,7 @@ export function MaterialRequestDetail() {
     }
 
     fetchMrDetail();
-  }, [kode, refresh]);
+  }, [kode]);
 
   if (isLoading) {
     return (
@@ -78,8 +76,6 @@ export function MaterialRequestDetail() {
       </WithSidebar>
     );
   }
-
-  async function handleEditMR() {}
 
   if (!mr) {
     return (
@@ -142,13 +138,6 @@ export function MaterialRequestDetail() {
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">
-                  Prioritas
-                </Label>
-                {/* Pastikan mr.tanggal_estimasi adalah Timestamp sebelum memanggil toDate() */}
-                <p className="font-medium text-base">{mr.priority}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">
                   Due date
                 </Label>
                 {/* Pastikan mr.tanggal_estimasi adalah Timestamp sebelum memanggil toDate() */}
@@ -172,7 +161,7 @@ export function MaterialRequestDetail() {
           </div>
         </SectionBody>
         <SectionFooter>
-          <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} />
+          {/* <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} /> */}
         </SectionFooter>
       </SectionContainer>
 
@@ -189,7 +178,9 @@ export function MaterialRequestDetail() {
                     <TableHead>Part Number</TableHead>
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
-                    <TableHead>Jumlah</TableHead>
+                    <TableHead>Prioritas</TableHead>
+                    <TableHead>Jumlah Permintaan</TableHead>
+                    <TableHead>Jumlah Diterima</TableHead>
                     {/* <TableHead>Aksi</TableHead> */}
                   </TableRow>
                 </TableHeader>
@@ -203,7 +194,9 @@ export function MaterialRequestDetail() {
                         <TableCell>{item.part_number}</TableCell>
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
+                        <TableCell>{item.priority}</TableCell>
                         <TableCell>{item.qty}</TableCell>
+                        <TableCell>{item.qty_delivered}</TableCell>
                         {/* <TableCell className="flex gap-2 items-center">
                           <Button
                             variant="outline"

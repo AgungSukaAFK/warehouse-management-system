@@ -29,7 +29,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { EditMRDialog } from "@/components/dialog/edit-mr";
 import { formatTanggal } from "@/lib/utils";
 import { PagingSize } from "@/types/enum";
 
@@ -109,11 +108,7 @@ export default function MaterialRequest() {
         mr.status.toLowerCase().includes(status.toLowerCase())
       );
     }
-    if (priority) {
-      filtered = filtered.filter((mr) =>
-        mr.priority.toLowerCase().includes(priority.toLowerCase())
-      );
-    }
+
     if (kode) {
       filtered = filtered.filter((mr) =>
         mr.kode.toLowerCase().includes(kode.toLowerCase())
@@ -325,10 +320,10 @@ export default function MaterialRequest() {
                             Detail
                           </Link>
                         </Button>
-                        {(user?.role === "warehouse" ||
+                        {/* {(user?.role === "warehouse" ||
                           user?.role === "purchasing") && (
                           <EditMRDialog mr={mr} refresh={setRefresh} />
-                        )}
+                        )} */}
                       </TableCell>
                     </TableRow>
                   ))

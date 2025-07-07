@@ -5,6 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Warehouse Management System</title>
+
+    <script>
+      (function () {
+        try {
+          document.documentElement.classList.add("transition-none");
+          const theme = localStorage.getItem("vite-ui-theme") || "light";
+          document.documentElement.classList.add(theme);
+          setTimeout(() => {
+            document.documentElement.classList.remove("transition-none");
+          }, 0);
+        } catch (e) {
+          document.documentElement.classList.add("light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

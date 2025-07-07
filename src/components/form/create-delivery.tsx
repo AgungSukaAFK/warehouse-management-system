@@ -3,7 +3,15 @@ import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { getAllMr } from "@/services/material-request";
-import type { Delivery, MR, Stock, UserComplete, UserDb } from "@/types";
+import type {
+  Delivery,
+  DeliveryItem,
+  MR,
+  MRItem,
+  Stock,
+  UserComplete,
+  UserDb,
+} from "@/types";
 import {
   Select,
   SelectContent,
@@ -16,13 +24,14 @@ import {
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "../ui/table";
 import { Button } from "../ui/button";
-import { DeliveryEkspedisi, DeliveryStatus, LokasiList } from "@/types/enum";
+import { DeliveryEkspedisi, LokasiList } from "@/types/enum";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import {
@@ -37,17 +46,16 @@ import { cn } from "@/lib/utils";
 import { Timestamp } from "firebase/firestore";
 import { createDelivery } from "@/services/delivery";
 import { getAllStocks } from "@/services/stock";
+import { AddItemDeliveryDialog } from "../dialog/add-item-delivery";
 
 interface CreateDeliveryFormProps {
   user: UserComplete | UserDb;
   setRefresh: Dispatch<SetStateAction<boolean>>;
-  setEnableCreate: Dispatch<SetStateAction<boolean>>;
 }
 
 export default function CreateDeliveryForm({
   user,
   setRefresh,
-  setEnableCreate,
 }: CreateDeliveryFormProps) {
   const [key, setKey] = useState(+new Date());
   const [open, setOpen] = useState<boolean>(false);
@@ -56,6 +64,14 @@ export default function CreateDeliveryForm({
   const [selectedMr, setSelectedMr] = useState<MR>();
   const [selectedFrom, setSelectedFrom] = useState<string>("");
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [deliveryItems, setDeliveryItems] = useState<DeliveryItem[]>([]);
+
+  useEffect(() => {
+    if (!selectedMr) {
+      setDeliveryItems([]);
+      return;
+    }
+  }, [selectedMr]);
 
   // Fetch Mr
   useEffect(() => {
@@ -94,25 +110,6 @@ export default function CreateDeliveryForm({
     fetchStock();
   }, []);
 
-  // Cek apakah mr valid untuk melakukan delivery
-  useEffect(() => {
-    if (!selectedMr || !stocks || !selectedFrom) {
-      setEnableCreate(false);
-      return;
-    }
-
-    const isValid = selectedMr.barang.every((item) => {
-      const stock = stocks.find(
-        (s) => s.part_number === item.part_number && selectedFrom === s.lokasi
-      );
-      return stock && stock.qty >= item.qty;
-    });
-    setEnableCreate(isValid);
-    if (!isValid) {
-      toast.error("Stok tidak mencukupi untuk melakukan delivery.");
-    }
-  }, [selectedMr, stocks, selectedFrom, setEnableCreate]);
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -130,7 +127,6 @@ export default function CreateDeliveryForm({
     const ekspedisi = formData.get("ekspedisi") as string;
     const dari = formData.get("dari") as string;
     const tujuan = selectedMr.lokasi;
-    const status = formData.get("status") as string;
     const koli = formData.get("koli") as string;
     const resi = formData.get("resi") as string;
 
@@ -149,17 +145,18 @@ export default function CreateDeliveryForm({
       ekspedisi,
       dari_gudang: dari,
       ke_gudang: tujuan,
-      status,
+      status: "pending",
       pic: user.nama,
       resi_pengiriman: resi,
       jumlah_koli: koli ? parseInt(koli) : 0,
       kode_mr: selectedMr.kode,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
+      items: deliveryItems,
     };
 
     try {
-      const res = await createDelivery(data, selectedMr.barang);
+      const res = await createDelivery(data);
       if (res) {
         toast.success("Delivery berhasil dibuat.");
         setRefresh((prev) => !prev);
@@ -178,6 +175,52 @@ export default function CreateDeliveryForm({
       }
       return;
     }
+  }
+
+  function handleAddItem(mr_item: MRItem, qty: number) {
+    if (!selectedFrom) {
+      toast.error("Silakan pilih lokasi pengirim terlebih dahulu.");
+      return;
+    }
+    if (!selectedMr) {
+      toast.error("Silakan pilih MR terlebih dahulu.");
+      return;
+    }
+    if (qty <= 0) {
+      toast.error("Jumlah yang dimasukkan tidak valid.");
+      return;
+    }
+    const existingItem = deliveryItems.find(
+      (item) => item.part_number === mr_item.part_number
+    );
+    if (existingItem) {
+      toast.error("Item dengan part number ini sudah ada di daftar delivery.");
+      return;
+    }
+    const stock = stocks.find(
+      (s) => s.part_number === mr_item.part_number && selectedFrom === s.lokasi
+    );
+    if (!stock || stock.qty < qty) {
+      toast.error(
+        `Stok tidak mencukupi untuk part number ${mr_item.part_number}.`
+      );
+      return;
+    }
+    const newItem: DeliveryItem = {
+      part_number: mr_item.part_number,
+      part_name: mr_item.part_name,
+      satuan: mr_item.satuan,
+      dari_gudang: selectedFrom,
+      ke_gudang: selectedMr.lokasi,
+      qty,
+      qty_pending: qty,
+      qty_on_delivery: 0,
+      qty_delivered: 0,
+    };
+    setDeliveryItems((prev) => [...prev, newItem]);
+    toast.success(
+      `Item ${mr_item.part_number} berhasil ditambahkan ke delivery.`
+    );
   }
 
   return (
@@ -343,7 +386,7 @@ export default function CreateDeliveryForm({
         </div>
 
         {/* Status */}
-        <div className="flex flex-col gap-2">
+        {/* <div className="flex flex-col gap-2">
           <Label htmlFor="status">Pilih pengiriman</Label>
           <div className="flex items-center">
             <Select required name="status">
@@ -362,7 +405,7 @@ export default function CreateDeliveryForm({
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </div> */}
 
         {/* Jumlah Koli */}
         <div className="flex flex-col gap-2">
@@ -377,8 +420,93 @@ export default function CreateDeliveryForm({
       </div>
 
       {/* Item dari MR */}
-      <div className="col-span-12">
+      <div className="col-span-12 flex flex-col gap-2">
         <Table>
+          <TableCaption>Tabel Daftar Barang di MR</TableCaption>
+          <TableHeader>
+            <TableRow className="border [&>*]:border">
+              <TableHead className="w-[50px] font-semibold text-center">
+                No
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Part Number
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Part Name
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Satuan
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Jumlah
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Jumlah dikirim
+              </TableHead>
+              <TableHead className="font-semibold text-center">
+                Stock {selectedFrom}
+              </TableHead>
+              <TableHead className="font-semibold text-center">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {selectedMr && selectedMr.barang.length > 0 ? (
+              selectedMr.barang.map((item, index) => (
+                <TableRow key={index} className="border [&>*]:border">
+                  <TableCell className="w-[50px]">{index + 1}</TableCell>
+                  <TableCell className="text-start">
+                    {item.part_number}
+                  </TableCell>
+                  <TableCell className="text-start">{item.part_name}</TableCell>
+                  <TableCell>{item.satuan}</TableCell>
+                  <TableCell>{item.qty}</TableCell>
+                  <TableCell>{item.qty_delivered}</TableCell>
+                  <TableCell>
+                    {
+                      stocks.find(
+                        (i) =>
+                          i.part_number === item.part_number &&
+                          selectedFrom === i.lokasi
+                      )?.qty
+                    }
+                  </TableCell>
+                  <TableCell>
+                    <AddItemDeliveryDialog
+                      mr_item={item}
+                      dari={selectedFrom}
+                      onAddItem={handleAddItem}
+                      triggerButton={
+                        <Button
+                          size={"sm"}
+                          variant={"outline"}
+                          type="button"
+                          disabled={!selectedFrom}
+                        >
+                          Tambah Ke Delivery
+                        </Button>
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center text-muted-foreground"
+                >
+                  Tidak ada item MR.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Item untuk delivery */}
+      <div className="col-span-12 flex flex-col gap-2">
+        <Table>
+          <TableCaption>Tabel Daftar Untuk Delivery Ini</TableCaption>
           <TableHeader>
             <TableRow className="border [&>*]:border">
               <TableHead className="w-[50px] font-semibold text-center">
@@ -400,8 +528,8 @@ export default function CreateDeliveryForm({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {selectedMr && selectedMr.barang.length > 0 ? (
-              selectedMr.barang.map((item, index) => (
+            {deliveryItems.length > 0 ? (
+              deliveryItems.map((item, index) => (
                 <TableRow key={index} className="border [&>*]:border">
                   <TableCell className="w-[50px]">{index + 1}</TableCell>
                   <TableCell className="text-start">
@@ -424,7 +552,7 @@ export default function CreateDeliveryForm({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center text-muted-foreground"
                 >
                   Tidak ada item MR.

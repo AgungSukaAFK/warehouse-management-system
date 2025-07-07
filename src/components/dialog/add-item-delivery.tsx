@@ -13,44 +13,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import type { MasterPart } from "@/types";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import type { MRItem } from "@/types";
 
-interface AddItemMRDialogProps {
-  selectedPart: MasterPart | undefined;
-  onAddItem: (part: MasterPart, qty: number, priority: string) => void; // Callback untuk menambahkan item ke daftar di parent
+interface AddDeliveryItemDialogProps {
+  mr_item: MRItem | undefined;
+  dari: string;
+  onAddItem: (part: MRItem, qty: number) => void; // Callback untuk menambahkan item ke daftar di parent
   triggerButton: React.ReactNode;
 }
 
-export function AddItemMRDialog({
-  selectedPart,
+export function AddItemDeliveryDialog({
+  mr_item,
   onAddItem,
+  dari,
   triggerButton,
-}: AddItemMRDialogProps) {
+}: AddDeliveryItemDialogProps) {
   const [qty, setQty] = useState<number>(1);
   const [isOpen, setIsOpen] = useState(false);
-  const [priority, setPriority] = useState<string>("p1");
 
   const handleSaveItem = () => {
-    if (!selectedPart || qty <= 0) {
+    if (!mr_item || qty <= 0) {
       toast.error(
         "Mohon lengkapi semua detail item dan pastikan kuantitas valid."
       );
       return;
     }
 
-    onAddItem(selectedPart, qty, priority);
+    onAddItem(mr_item, qty);
 
     // Reset form dan tutup dialog
     setQty(1);
-    setPriority("p1");
     setIsOpen(false);
   };
 
@@ -59,9 +51,9 @@ export function AddItemMRDialog({
       <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Tambah Item Material Request</DialogTitle>
+          <DialogTitle>Tambah Item Delivery</DialogTitle>
           <DialogDescription>
-            Masukkan detail untuk item material request yang baru.
+            Masukkan detail untuk item yang akan dikirim.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -70,7 +62,7 @@ export function AddItemMRDialog({
             <Input
               id="partNo"
               placeholder="Part number"
-              value={selectedPart?.part_number}
+              value={mr_item?.part_number}
               disabled
               required
             />
@@ -80,7 +72,7 @@ export function AddItemMRDialog({
             <Input
               id="partName"
               placeholder="Nama part"
-              value={selectedPart?.part_name}
+              value={mr_item?.part_name}
               disabled
               required
             />
@@ -90,40 +82,40 @@ export function AddItemMRDialog({
             <Input
               id="satuan"
               placeholder="Satuan (contoh: Pcs, Kg)"
-              value={selectedPart?.satuan}
+              value={mr_item?.satuan}
               disabled
               required
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="qty">Jumlah</Label>
+            <Label htmlFor="qty">Jumlah yg diminta</Label>
             <Input
               id="qty"
               type="number"
               placeholder="Jumlah"
+              value={mr_item?.qty}
+              required
+              disabled
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="qty">Gudang dipilih untuk mengirim</Label>
+            <Input id="qty" type="text" value={dari} required disabled />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="qty">Jumlah yg akan dikirim</Label>
+            <Input
+              id="qty_delivery"
+              type="number"
+              placeholder="Jumlah yang akan dikirim"
               value={qty}
               onChange={(e) => setQty(parseInt(e.target.value) || 0)}
               min="1"
               required
             />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="qty">Prioritas</Label>
-            <Select required defaultValue={priority}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih prioritas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="p1">P1</SelectItem>
-                  <SelectItem value="p2">P2</SelectItem>
-                  <SelectItem value="p3">P3</SelectItem>
-                  <SelectItem value="p4">P4</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
           </div>
         </div>
         <DialogFooter>

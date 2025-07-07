@@ -31,6 +31,24 @@ export async function getAllPo(): Promise<PO[]> {
   }
 }
 
+export async function getPurchasedPO(): Promise<PO[]> {
+  try {
+    const q = query(
+      POCollection,
+      where("status", "==", "purchased"),
+      orderBy("kode", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as PO[];
+  } catch (error) {
+    console.error("Error fetching all PO:", error);
+    throw error;
+  }
+}
+
 export async function getPoByKode(kode: string): Promise<PO | null> {
   try {
     const q = query(POCollection, where("kode", "==", kode));

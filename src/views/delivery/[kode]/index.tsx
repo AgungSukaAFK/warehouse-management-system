@@ -203,6 +203,9 @@ export function DeliveryDetail() {
           </div>
         </SectionBody>
         <SectionFooter>
+          {/* {dlvry.status !== "completed" && (
+            <EditDeliveryDialog delivery={dlvry} refresh={setRefresh} />
+          )} */}
           <EditDeliveryDialog delivery={dlvry} refresh={setRefresh} />
         </SectionFooter>
       </SectionContainer>
@@ -220,7 +223,11 @@ export function DeliveryDetail() {
                     <TableHead>Part Number</TableHead>
                     <TableHead>Nama Part</TableHead>
                     <TableHead>Satuan</TableHead>
-                    <TableHead>Jumlah</TableHead>
+                    <TableHead>Jumlah diminta</TableHead>
+                    <TableHead>Jumlah diterima</TableHead>
+                    <TableHead>Jumlah on delivery</TableHead>
+                    <TableHead>Jumlah pending delivery</TableHead>
+                    <TableHead>Dari gudang</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -234,6 +241,22 @@ export function DeliveryDetail() {
                         <TableCell>{item.part_name}</TableCell>
                         <TableCell>{item.satuan}</TableCell>
                         <TableCell>{item.qty}</TableCell>
+                        <TableCell>{item.qty_delivered}</TableCell>
+                        <TableCell>
+                          {dlvry.items.find(
+                            (e) => e.part_number === item.part_number
+                          )?.qty_on_delivery || 0}
+                        </TableCell>
+                        <TableCell>
+                          {dlvry.items.find(
+                            (e) => e.part_number === item.part_number
+                          )?.qty_pending || 0}
+                        </TableCell>
+                        <TableCell>
+                          {dlvry.items.find(
+                            (e) => e.part_number === item.part_number
+                          )?.dari_gudang || "-"}
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (

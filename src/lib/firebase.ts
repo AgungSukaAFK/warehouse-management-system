@@ -29,3 +29,4 @@ export const MasterPartCollection = collection(db, "master_parts");
 export const StockCollection = collection(db, "stocks");
 export const DeliveryCollection = collection(db, "deliveries");
 export const POCollection = collection(db, "purchase_orders");
+export const RICollection = collection(db, "receive_items");

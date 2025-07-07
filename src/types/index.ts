@@ -92,9 +92,13 @@ export interface PO {
 }
 
 export interface RI {
+  id?: string;
+  kode: string;
   kode_po: string;
-  tanggal: Timestamp;
+  tanggal: string;
   gudang_penerima: string;
+  keterangan?: string;
+  pic: string;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -113,6 +117,20 @@ export interface Delivery {
   jumlah_koli: number;
   created_at: Timestamp;
   updated_at: Timestamp;
+
+  items: DeliveryItem[];
+}
+
+export interface DeliveryItem {
+  part_number: string;
+  part_name: string;
+  dari_gudang: string;
+  ke_gudang: string;
+  satuan: string;
+  qty: number;
+  qty_pending: number;
+  qty_on_delivery: number;
+  qty_delivered: number;
 }
 
 export interface MasterPart {

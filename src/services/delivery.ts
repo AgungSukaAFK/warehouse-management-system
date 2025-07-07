@@ -6,8 +6,12 @@
  * 4. Get Delivery by id : All
  */
 
-import { DeliveryCollection, StockCollection } from "@/lib/firebase";
-import type { Delivery, Item } from "@/types";
+import {
+  DeliveryCollection,
+  MRCollection,
+  StockCollection,
+} from "@/lib/firebase";
+import type { Delivery, DeliveryItem, MR } from "@/types";
 import {
   addDoc,
   getDocs,
@@ -21,7 +25,11 @@ import {
 export async function getAllDelivery(): Promise<Delivery[]> {
   try {
     const snapshots = await getDocs(
-      query(DeliveryCollection, orderBy("status", "desc"))
+      query(
+        DeliveryCollection,
+        orderBy("status", "desc"),
+        orderBy("kode_it", "desc")
+      )
     );
     return snapshots.docs.map((doc) => ({
       id: doc.id,
@@ -58,7 +66,101 @@ export async function updateDelivery(
     const docRef = await getDocs(
       query(DeliveryCollection, where("kode_it", "==", kode_it))
     );
-    await updateDoc(docRef.docs[0].ref, data);
+
+    if (docRef.empty) {
+      throw new Error(`Delivery dengan kode IT ${kode_it} tidak ditemukan.`);
+    }
+
+    if (!data.kode_mr) {
+      throw new Error("Kode MR tidak ditemukan dalam data delivery.");
+    }
+
+    if (data.status === "completed") {
+      const mrRef = await getDocs(
+        query(MRCollection, where("kode", "==", data.kode_mr))
+      );
+      const mrDoc = mrRef.docs[0];
+      let mrItems = (mrDoc.data() as MR).barang;
+      console.log(mrItems);
+      // update barang di MR
+      data.items?.forEach((item: DeliveryItem) => {
+        mrItems = mrItems.map((mr_item) => {
+          if (mr_item.part_number === item.part_number) {
+            return {
+              ...mr_item,
+              qty_delivered: (mr_item.qty_delivered += item.qty),
+            };
+          } else {
+            return mr_item;
+          }
+        });
+      });
+
+      // update MR masih open
+      let isMrDone: boolean = false;
+      mrItems.forEach((item) => {
+        if (item.qty_delivered >= item.qty) {
+          isMrDone = true;
+        }
+      });
+      await updateDoc(mrDoc.ref, {
+        barang: mrItems,
+        status: isMrDone ? "close" : "open",
+        updated_at: Timestamp.now(),
+      });
+
+      // Pindah qty delivery ke qty delivered
+      data.items?.forEach((item: DeliveryItem) => {
+        item.qty_delivered += item.qty_on_delivery;
+        item.qty_on_delivery = 0; // reset qty on delivery
+      });
+    }
+
+    if (data.status === "on delivery") {
+      // Kurangi stok di gudang pengirim
+      console.log(data.items);
+      data.items?.forEach(async (item: DeliveryItem) => {
+        const stockQuery = query(
+          StockCollection,
+          where("part_number", "==", item.part_number),
+          where("lokasi", "==", item.dari_gudang)
+        );
+        const stockSnapshot = await getDocs(stockQuery);
+        if (stockSnapshot.empty) {
+          throw new Error(
+            `Stok untuk part ${item.part_number} di lokasi ${item.dari_gudang} tidak ditemukan.`
+          );
+        }
+        const stockDoc = stockSnapshot.docs[0];
+        console.log("data");
+        console.log(stockDoc.data());
+        const currentStock = stockDoc.data().qty as number;
+
+        if (currentStock < item.qty) {
+          throw new Error(
+            `Stok tidak cukup untuk part ${item.part_number} di lokasi ${item.dari_gudang}.`
+          );
+        }
+
+        // Update stok
+        await updateDoc(stockDoc.ref, {
+          qty: currentStock - item.qty,
+          updated_at: Timestamp.now(),
+        });
+      });
+      // pindah qty pending ke qty on delivery
+      data.items?.forEach((item: DeliveryItem) => {
+        item.qty_on_delivery += item.qty_pending;
+        item.qty_pending = 0; // reset qty pending
+      });
+    }
+
+    await updateDoc(docRef.docs[0].ref, {
+      ...data,
+      items: data.items,
+      updated_at: Timestamp.now(),
+    });
+
     return true;
   } catch (error) {
     console.error("Error updating delivery:", error);
@@ -66,12 +168,7 @@ export async function updateDelivery(
   }
 }
 
-export async function createDelivery(
-  data: Delivery,
-  mr_items: Item[]
-): Promise<boolean> {
-  const from = data.dari_gudang;
-  const to = data.ke_gudang;
+export async function createDelivery(data: Delivery): Promise<boolean> {
   try {
     // Cek kode IT
     const q = query(DeliveryCollection, where("kode_it", "==", data.kode_it));
@@ -79,54 +176,6 @@ export async function createDelivery(
     if (!snapshots.empty) {
       throw new Error(`Kode IT ${data.kode_it} sudah ada.`);
     }
-
-    // Kurangi stok di gudang penerima, tambah stok gudang pengirim
-    mr_items.forEach(async (item) => {
-      const qFrom = query(
-        StockCollection,
-        where("part_number", "==", item.part_number),
-        where("lokasi", "==", from)
-      );
-
-      const fromSnapshots = await getDocs(qFrom);
-      if (fromSnapshots.empty) {
-        throw new Error(
-          `Stok tidak ditemukan untuk ${item.part_name} di gudang ${from}.`
-        );
-      }
-
-      const qTo = query(
-        StockCollection,
-        where("part_number", "==", item.part_number),
-        where("lokasi", "==", to)
-      );
-
-      const toSnapshots = await getDocs(qTo);
-      if (toSnapshots.empty) {
-        throw new Error(
-          `Stok tidak ditemukan untuk ${item.part_name} di gudang ${to}.`
-        );
-      }
-
-      if (fromSnapshots.empty || toSnapshots.empty) {
-        throw new Error(
-          `Stok tidak ditemukan untuk ${item.part_name} di gudang ${from} atau  ${to}.`
-        );
-      }
-
-      const fromDoc = fromSnapshots.docs[0];
-      const newQtyFrom = (fromDoc.data().qty || 0) - item.qty;
-      if (newQtyFrom < 0) {
-        throw new Error(
-          `Stok tidak cukup di gudang ${from} untuk mengirim ${item.qty} ${item.part_name}.`
-        );
-      }
-      await updateDoc(fromDoc.ref, { qty: newQtyFrom });
-
-      const toDoc = toSnapshots.docs[0];
-      const newQtyTo = (toDoc.data().qty || 0) + item.qty;
-      await updateDoc(toDoc.ref, { qty: newQtyTo });
-    });
 
     // Buat dokumen delivery baru
     await addDoc(DeliveryCollection, {
