@@ -49,4 +49,4 @@ export const DeliveryEkspedisi = [
   "Lainnya",
   "Belum ditentukan",
 ];
-export const PagingSize = 25;
+export const PagingSize = 10;

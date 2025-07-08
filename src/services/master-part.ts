@@ -47,8 +47,8 @@ export async function createMasterPart(data: MasterPart): Promise<boolean> {
       part_name,
       satuan,
       lokasi: lokasi.nama,
-      max: 0,
-      min: 0,
+      max: 0, // default
+      min: 0, // default
       qty: 0,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
@@ -63,9 +63,14 @@ export async function createMasterPart(data: MasterPart): Promise<boolean> {
 
 export async function getMasterParts(): Promise<MasterPart[]> {
   const snapShot = await getDocs(MasterPartCollection);
-  return snapShot.docs.map((doc) => {
-    return doc.data() as MasterPart;
-  });
+
+  const res = snapShot.docs
+    .map((doc) => {
+      return doc.data() as MasterPart;
+    })
+    .flat();
+  console.log(res);
+  return res;
 }
 
 export async function updateMasterPart(

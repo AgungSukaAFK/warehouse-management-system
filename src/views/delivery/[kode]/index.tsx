@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { formatTanggal } from "@/lib/utils";
-import { getDeliveryByKode } from "@/services/delivery";
+import { getDeliveryByKode, updateDelivery } from "@/services/delivery";
 import { getMrByKode } from "@/services/material-request";
 import { EditDeliveryDialog } from "@/components/dialog/edit-delivery";
+import { ConfirmDialog } from "@/components/dialog/edit-status-delivery";
 
 export function DeliveryDetail() {
   const { kode } = useParams<{ kode: string }>();
@@ -90,6 +91,48 @@ export function DeliveryDetail() {
       fetchMrDetail(dlvry.kode_mr);
     }
   }, [dlvry]);
+
+  async function updateDeliveryStatus(status: "on delivery" | "completed") {
+    if (!dlvry) {
+      toast.error("Delivery tidak ditemukan.");
+      return;
+    }
+
+    try {
+      if (status === "on delivery") {
+        const res = await updateDelivery(dlvry.kode_it, {
+          status: "on delivery",
+        });
+        if (res) {
+          toast.success(
+            "Status delivery berhasil diperbarui ke 'on delivery'."
+          );
+          setRefresh((prev) => !prev);
+        } else {
+          toast.error("Gagal memperbarui status delivery.");
+        }
+      } else if (status === "completed") {
+        const res = await updateDelivery(dlvry.kode_it, {
+          status: "completed",
+        });
+        if (res) {
+          toast.success(
+            "Status delivery berhasil diperbarui ke 'on delivery'."
+          );
+          setRefresh((prev) => !prev);
+        } else {
+          toast.error("Gagal memperbarui status delivery.");
+        }
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui status delivery:", error);
+      if (error instanceof Error) {
+        toast.error(`Gagal memperbarui status delivery: ${error.message}`);
+      } else {
+        toast.error("Terjadi kesalahan saat memperbarui status delivery.");
+      }
+    }
+  }
 
   if (isLoading) {
     return (
@@ -202,11 +245,27 @@ export function DeliveryDetail() {
             </div>
           </div>
         </SectionBody>
-        <SectionFooter>
+        <SectionFooter className="flex gap-2">
           {/* {dlvry.status !== "completed" && (
             <EditDeliveryDialog delivery={dlvry} refresh={setRefresh} />
           )} */}
           <EditDeliveryDialog delivery={dlvry} refresh={setRefresh} />
+          {dlvry.status === "pending" && (
+            <ConfirmDialog
+              text="Naikkan status ke on delivery"
+              onClick={() => {
+                updateDeliveryStatus("on delivery");
+              }}
+            />
+          )}
+          {dlvry.status === "on delivery" && (
+            <ConfirmDialog
+              text="Selesaikan delivery"
+              onClick={() => {
+                updateDeliveryStatus("completed");
+              }}
+            />
+          )}
         </SectionFooter>
       </SectionContainer>
 

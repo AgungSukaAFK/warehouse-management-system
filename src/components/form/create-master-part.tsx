@@ -24,16 +24,19 @@ const Satuan = [
   "BOX",
   "METER",
   "LUSIN",
+  "LITER",
   "PACK",
   "SET",
   "PASANG",
-  "ROLL",
+  "ROL",
   "RIM",
   "LEMBAR",
+  "CM",
+  "JRG",
   "KG",
   "MONTH",
   "YEAR",
-];
+].sort();
 export default function CreateMasterPartForm({
   setRefresh,
 }: CreateMRFormProps) {

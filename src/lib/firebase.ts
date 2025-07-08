@@ -1,6 +1,14 @@
 import { initializeApp } from "firebase/app";
-import { collection, getFirestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import {
+  collection,
+  connectFirestoreEmulator,
+  getFirestore,
+} from "firebase/firestore";
+import {
+  connectAuthEmulator,
+  getAuth,
+  GoogleAuthProvider,
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,6 +28,12 @@ export const googleAuthProvider = new GoogleAuthProvider();
 
 // Initialize Firebase Firestore
 export const db = getFirestore(app);
+
+// Connect ke firebase emulator jika ada
+// if (window.location.hostname === "localhost") {
+//   connectAuthEmulator(auth, "http://127.0.0.1:9099");
+//   connectFirestoreEmulator(db, "127.0.0.1", 8080);
+// }
 
 // Firestore collections
 export const UserCollection = collection(db, "users");

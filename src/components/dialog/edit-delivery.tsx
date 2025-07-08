@@ -13,7 +13,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import type { Delivery } from "@/types";
 import { toast } from "sonner";
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction } from "react";
 import {
   Select,
   SelectContent,
@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { updateDelivery } from "@/services/delivery";
-import { DeliveryEkspedisi, DeliveryStatus } from "@/types/enum";
+import { DeliveryEkspedisi } from "@/types/enum";
 
 interface MyDialogProps {
   onSubmit?: () => void;
@@ -33,17 +33,10 @@ interface MyDialogProps {
 }
 
 export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
-  const [statusAwal, setStatusAwal] = useState<string>("");
-
-  useEffect(() => {
-    setStatusAwal(delivery.status);
-  }, [delivery]);
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const status = formData.get("status") as string;
     const ekspedisi = formData.get("ekspedisi") as string;
     const resi_pengiriman = formData.get("resi_pengiriman") as string;
     const jumlah_koli = formData.get("jumlah_koli") as string;
@@ -53,21 +46,8 @@ export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
       return;
     }
 
-    if (status === "completed" && statusAwal !== "on delivery") {
-      toast.error(
-        "Status harus 'on delivery' sebelum diubah menjadi 'completed'"
-      );
-      return;
-    }
-
-    if (status === statusAwal) {
-      toast.error("Tidak ada perubahan status yang dilakukan");
-      return;
-    }
-
     const data: Partial<Delivery> = {
       kode_mr: delivery.kode_mr,
-      status,
       ekspedisi,
       resi_pengiriman,
       items: delivery.items,
@@ -158,7 +138,7 @@ export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
                 defaultValue={delivery.jumlah_koli}
               />
             </div>
-            <div className="grid gap-3">
+            {/* <div className="grid gap-3">
               <Label htmlFor="status">Status</Label>
               <Select name="status" required>
                 <SelectTrigger className="w-full" name="status" id="status">
@@ -177,7 +157,7 @@ export function EditDeliveryDialog({ delivery, refresh }: MyDialogProps) {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </div>
         </form>
         <DialogFooter>

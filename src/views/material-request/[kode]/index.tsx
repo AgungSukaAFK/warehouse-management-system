@@ -22,6 +22,8 @@ import { Timestamp } from "firebase/firestore";
 import { formatTanggal } from "@/lib/utils";
 import { parse } from "date-fns";
 import { getMrByKode } from "@/services/material-request";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 export function MaterialRequestDetail() {
   const { kode } = useParams<{ kode: string }>();
@@ -162,6 +164,13 @@ export function MaterialRequestDetail() {
         </SectionBody>
         <SectionFooter>
           {/* <EditMRDialog mr={mr} refresh={setRefresh} onSubmit={handleEditMR} /> */}
+          <Button
+            variant={"outline"}
+            onClick={() => window.print()}
+            className="print:hidden"
+          >
+            <Printer />
+          </Button>
         </SectionFooter>
       </SectionContainer>
 
@@ -191,12 +200,24 @@ export function MaterialRequestDetail() {
                         <TableCell className="w-[50px] text-center">
                           {index + 1}
                         </TableCell>
-                        <TableCell>{item.part_number}</TableCell>
-                        <TableCell>{item.part_name}</TableCell>
-                        <TableCell>{item.satuan}</TableCell>
-                        <TableCell>{item.priority}</TableCell>
-                        <TableCell>{item.qty}</TableCell>
-                        <TableCell>{item.qty_delivered}</TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.part_number}
+                        </TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.part_name}
+                        </TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.satuan}
+                        </TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.priority}
+                        </TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.qty}
+                        </TableCell>
+                        <TableCell className="max-w-40 break-words whitespace-normal">
+                          {item.qty_delivered}
+                        </TableCell>
                         {/* <TableCell className="flex gap-2 items-center">
                           <Button
                             variant="outline"

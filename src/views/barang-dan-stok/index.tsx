@@ -180,6 +180,12 @@ function DataMasterPartSection({ masterParts }: { masterParts: MasterPart[] }) {
     setTableMasterParts(masterParts.slice(0, pageSize));
   }, [masterParts]);
 
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    setTableMasterParts(filteredMasterParts.slice(startIndex, endIndex));
+  }, [currentPage, filteredMasterParts]);
+
   // Filtering
   const [pn, setPn] = useState<string>("");
   const [pnm, setPnm] = useState<string>("");
@@ -329,6 +335,12 @@ function DataStokBarangSection({
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   useEffect(() => {
+    const startIndex = (currentPage - 1) * PagingSize;
+    const endIndex = startIndex + PagingSize;
+    setTableStocks(filteredStock.slice(startIndex, endIndex));
+  }, [currentPage, filteredStock]);
+
+  useEffect(() => {
     // Mulai dari stocks penuh atau dibatasi lokasi user
     let data = semuaLokasi
       ? stocks
@@ -360,7 +372,6 @@ function DataStokBarangSection({
     }
 
     setFilteredStock(data);
-    setTableStocks(data.slice(0, PagingSize));
     setCurrentPage(1);
   }, [stocks, semuaLokasi, pn, pnm, uom, lokasi, lokasiUser]);
 

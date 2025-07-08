@@ -26,6 +26,7 @@ import DeliveryPage from "./views/delivery/index.tsx";
 import { DeliveryDetail } from "./views/delivery/[kode]/index.tsx";
 import { PurchaseOrderDetail } from "./views/purchase-order/[kode]/index.tsx";
 import { ThemeProvider } from "./components/theme-provider.tsx";
+import ImportPage from "./views/khusus/index.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -95,6 +96,8 @@ createRoot(document.getElementById("root")!).render(
 
           {/* HOMEPAGE */}
           <Route path="/" element={<App />} />
+
+          <Route path="/khusus" element={<ImportPage />} />
 
           {/* NOT FOUND PAGE HANDLER */}
           <Route path="/*" element={<NotFound />} />
